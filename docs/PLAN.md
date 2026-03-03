@@ -51,17 +51,17 @@ Tests and success criteria:
 
 Statically build the Next.js frontend and serve it via FastAPI at /.
 
-- [ ] Add `output: "export"` to `frontend/next.config.ts`
-- [ ] Adjust layout.tsx if needed (remove features incompatible with static export)
-- [ ] Update Dockerfile to: install Node.js, run `npm ci && npm run build` in frontend/, copy the static output to a location FastAPI serves
-- [ ] Update `backend/app/main.py` to serve the static frontend files at / (using StaticFiles mount or similar)
-- [ ] Ensure client-side routing works (fallback to index.html)
+- [x] Add `output: "export"` to `frontend/next.config.ts`
+- [x] Adjust layout.tsx if needed (remove features incompatible with static export)
+- [x] Update Dockerfile to: install Node.js, run `npm ci && npm run build` in frontend/, copy the static output to a location FastAPI serves
+- [x] Update `backend/app/main.py` to serve the static frontend files at / (using StaticFiles mount or similar)
+- [x] Ensure client-side routing works (fallback to index.html)
 
 Tests and success criteria:
-- [ ] `npm run build` in frontend/ succeeds with static export
-- [ ] Frontend unit tests still pass (`npm run test:unit`)
-- [ ] Docker build completes; visiting http://localhost:8000/ shows the Kanban board
-- [ ] All existing Kanban interactions work (rename column, add card, delete card, drag-and-drop)
+- [x] `npm run build` in frontend/ succeeds with static export
+- [x] Frontend unit tests still pass (`npm run test:unit`)
+- [x] Docker build completes; visiting http://localhost:8000/ shows the Kanban board
+- [x] All existing Kanban interactions work (rename column, add card, delete card, drag-and-drop)
 
 ---
 
@@ -69,18 +69,18 @@ Tests and success criteria:
 
 Add a login screen. Hardcoded credentials: "user" / "password".
 
-- [ ] Add POST /api/login endpoint: accepts `{username, password}`, validates against hardcoded values, sets a session cookie on success
-- [ ] Add POST /api/logout endpoint: clears the session cookie
-- [ ] Add GET /api/me endpoint: returns the current user if the cookie is valid, 401 otherwise
-- [ ] Add a login page/component in the frontend (simple form, username + password fields, submit button, error message on failure)
-- [ ] Gate the Kanban board behind auth: if not logged in, show login; if logged in, show board + logout button
-- [ ] Style login page using the project color scheme
+- [x] Add POST /api/login endpoint: accepts `{username, password}`, validates against hardcoded values, sets a session cookie on success
+- [x] Add POST /api/logout endpoint: clears the session cookie
+- [x] Add GET /api/me endpoint: returns the current user if the cookie is valid, 401 otherwise
+- [x] Add a login page/component in the frontend (simple form, username + password fields, submit button, error message on failure)
+- [x] Gate the Kanban board behind auth: if not logged in, show login; if logged in, show board + logout button
+- [x] Style login page using the project color scheme
 
 Tests and success criteria:
-- [ ] Backend unit tests: login with correct creds returns 200 + cookie; wrong creds returns 401; /api/me with valid cookie returns user; /api/me without cookie returns 401; logout clears cookie
-- [ ] Frontend unit tests: login form renders, submits, shows error on failure
-- [ ] E2E: full login -> see board -> logout -> see login flow
-- [ ] Visiting / without auth shows login page
+- [x] Backend unit tests: login with correct creds returns 200 + cookie; wrong creds returns 401; /api/me with valid cookie returns user; /api/me without cookie returns 401; logout clears cookie
+- [x] Frontend unit tests: login form renders, submits, shows error on failure
+- [x] E2E: full login -> see board -> logout -> see login flow
+- [x] Visiting / without auth shows login page
 
 ---
 

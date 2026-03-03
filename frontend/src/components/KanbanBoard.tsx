@@ -13,11 +13,23 @@ import {
 } from "@dnd-kit/core";
 import { KanbanColumn } from "@/components/KanbanColumn";
 import { KanbanCardPreview } from "@/components/KanbanCardPreview";
+import { CardModal } from "@/components/CardModal";
 import { createId, initialData, moveCard, type BoardData } from "@/lib/kanban";
 
-export const KanbanBoard = () => {
+type ModalState =
+  | { mode: "create"; columnId: string }
+  | { mode: "edit"; cardId: string }
+  | null;
+
+type KanbanBoardProps = {
+  username?: string;
+  onLogout?: () => void;
+};
+
+export const KanbanBoard = ({ username, onLogout }: KanbanBoardProps) => {
   const [board, setBoard] = useState<BoardData>(() => initialData);
   const [activeCardId, setActiveCardId] = useState<string | null>(null);
+  const [modal, setModal] = useState<ModalState>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -60,13 +72,23 @@ export const KanbanBoard = () => {
       ...prev,
       cards: {
         ...prev.cards,
-        [id]: { id, title, details: details || "No details yet." },
+        [id]: { id, title, details: details || "" },
       },
       columns: prev.columns.map((column) =>
         column.id === columnId
           ? { ...column, cardIds: [...column.cardIds, id] }
           : column
       ),
+    }));
+  };
+
+  const handleEditCard = (cardId: string, title: string, details: string) => {
+    setBoard((prev) => ({
+      ...prev,
+      cards: {
+        ...prev.cards,
+        [cardId]: { ...prev.cards[cardId], title, details },
+      },
     }));
   };
 
@@ -111,13 +133,29 @@ export const KanbanBoard = () => {
                 and capture quick notes without getting buried in settings.
               </p>
             </div>
-            <div className="rounded-2xl border border-[var(--stroke)] bg-[var(--surface)] px-5 py-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--gray-text)]">
-                Focus
-              </p>
-              <p className="mt-2 text-lg font-semibold text-[var(--primary-blue)]">
-                One board. Five columns. Zero clutter.
-              </p>
+            <div className="flex flex-col items-end gap-3">
+              <div className="rounded-2xl border border-[var(--stroke)] bg-[var(--surface)] px-5 py-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--gray-text)]">
+                  Focus
+                </p>
+                <p className="mt-2 text-lg font-semibold text-[var(--primary-blue)]">
+                  One board. Five columns. Zero clutter.
+                </p>
+              </div>
+              {username && onLogout && (
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-semibold text-[var(--gray-text)]">
+                    {username}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={onLogout}
+                    className="rounded-full border border-[var(--stroke)] px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-[var(--gray-text)] transition hover:text-[var(--navy-dark)]"
+                  >
+                    Sign out
+                  </button>
+                </div>
+              )}
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-4">
@@ -139,14 +177,15 @@ export const KanbanBoard = () => {
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <section className="grid gap-6 lg:grid-cols-5">
+          <section className="grid items-start gap-6 lg:grid-cols-5">
             {board.columns.map((column) => (
               <KanbanColumn
                 key={column.id}
                 column={column}
                 cards={column.cardIds.map((cardId) => board.cards[cardId])}
                 onRename={handleRenameColumn}
-                onAddCard={handleAddCard}
+                onAddCard={(colId) => setModal({ mode: "create", columnId: colId })}
+                onEditCard={(cardId) => setModal({ mode: "edit", cardId })}
                 onDeleteCard={handleDeleteCard}
               />
             ))}
@@ -160,6 +199,30 @@ export const KanbanBoard = () => {
           </DragOverlay>
         </DndContext>
       </main>
+
+      {modal?.mode === "create" && (
+        <CardModal
+          mode="create"
+          onSubmit={(title, details) => {
+            handleAddCard(modal.columnId, title, details);
+            setModal(null);
+          }}
+          onClose={() => setModal(null)}
+        />
+      )}
+
+      {modal?.mode === "edit" && (
+        <CardModal
+          mode="edit"
+          initialTitle={board.cards[modal.cardId]?.title}
+          initialDetails={board.cards[modal.cardId]?.details}
+          onSubmit={(title, details) => {
+            handleEditCard(modal.cardId, title, details);
+            setModal(null);
+          }}
+          onClose={() => setModal(null)}
+        />
+      )}
     </div>
   );
 };
