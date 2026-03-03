@@ -1,37 +1,199 @@
 # High level steps for project
 
-Part 1: Plan
+## Design decisions
 
-Enrich this document to plan out each of these parts in detail, with substeps listed out as a checklist to be checked off by the agent, and with tests and success critieria for each. Also create an AGENTS.md file inside the frontend directory that describes the existing code there. Ensure the user checks and approves the plan.
+- Auth: simple cookie-based flag, no JWT. Hardcoded "user"/"password". Keep it trivial but structured so real auth can replace it later.
+- Frontend: statically exported Next.js SPA served by FastAPI. No SSR / Next.js API routes.
+- AI conversation history: in-memory (React state), not persisted. Lost on refresh.
+- Docker volume: SQLite db file mounted as a volume so data survives container restarts.
+- Scripts: simple wrappers around docker build/run/stop.
 
-Part 2: Scaffolding
+---
 
-Set up the Docker infrastructure, the backend in backend/ with FastAPI, and write the start and stop scripts in the scripts/ directory. This should serve example static HTML to confirm that a 'hello world' example works running locally and also make an API call.
+## Part 1: Plan
 
-Part 3: Add in Frontend
+- [x] Enrich PLAN.md with detailed substeps, checklists, tests, and success criteria
+- [x] Create frontend/AGENTS.md describing the existing frontend code
+- [x] User approves the plan
 
-Now update so that the frontend is statically built and served, so that the app has the demo Kanban board displayed at /. Comprehensive unit and integration tests.
+Success: User confirms plan is good to proceed.
 
-Part 4: Add in a fake user sign in experience
+---
 
-Now update so that on first hitting /, you need to log in with dummy credentials ("user", "password") in order to see the Kanban, and you can log out. Comprehensive tests.
+## Part 2: Scaffolding
 
-Part 5: Database modeling
+Set up Docker, FastAPI backend, and start/stop scripts. Serve a hello-world page and expose a test API endpoint.
 
-Now propose a database schema for the Kanban, saving it as JSON. Document the database approach in docs/ and get user sign off.
+- [x] Create `backend/pyproject.toml` with FastAPI, uvicorn dependencies (managed by uv)
+- [x] Create `backend/app/main.py` with a FastAPI app that:
+  - Serves a static "Hello World" HTML page at GET /
+  - Has a GET /api/health endpoint returning `{"status": "ok"}`
+- [x] Create `Dockerfile` in project root:
+  - Based on a Python image with uv
+  - Install backend dependencies with uv
+  - Expose port 8000
+  - Run uvicorn
+- [x] Create `scripts/start.sh` (Mac/Linux) -- builds and runs the Docker container, mounts a volume for the SQLite db
+- [x] Create `scripts/stop.sh` (Mac/Linux) -- stops and removes the container
+- [x] Create `scripts/start.bat` and `scripts/stop.bat` (Windows equivalents)
+- [x] Update `backend/AGENTS.md` with backend structure description
 
-Part 6: Backend
+Tests and success criteria:
+- [x] `docker build` completes without errors
+- [x] `scripts/start.sh` starts the container; curl http://localhost:8000/ returns "Hello World" HTML
+- [x] curl http://localhost:8000/api/health returns `{"status": "ok"}`
+- [x] `scripts/stop.sh` stops the container cleanly
+- [x] Backend unit test: test /api/health returns 200 with expected JSON (pytest + httpx)
 
-Now add API routes to allow the backend to read and change the Kanban for a given user; test this thoroughly with backend unit tests. The database should be created if it doesn't exist.
+---
 
-Part 7: Frontend + Backend
+## Part 3: Add in Frontend
 
-Now have the frontend actually use the backend API, so that the app is a proper persistent Kanban board. Test very throughly.
+Statically build the Next.js frontend and serve it via FastAPI at /.
 
-Part 8: AI connectivity
+- [ ] Add `output: "export"` to `frontend/next.config.ts`
+- [ ] Adjust layout.tsx if needed (remove features incompatible with static export)
+- [ ] Update Dockerfile to: install Node.js, run `npm ci && npm run build` in frontend/, copy the static output to a location FastAPI serves
+- [ ] Update `backend/app/main.py` to serve the static frontend files at / (using StaticFiles mount or similar)
+- [ ] Ensure client-side routing works (fallback to index.html)
 
-Now allow the backend to make an AI call via OpenRouter. Test connectivity with a simple "2+2" test and ensure the AI call is working.
+Tests and success criteria:
+- [ ] `npm run build` in frontend/ succeeds with static export
+- [ ] Frontend unit tests still pass (`npm run test:unit`)
+- [ ] Docker build completes; visiting http://localhost:8000/ shows the Kanban board
+- [ ] All existing Kanban interactions work (rename column, add card, delete card, drag-and-drop)
 
-Part 9: Now extend the backend call so that it always calls the AI with the JSON of the Kanban board, plus the user's question (and conversation history). The AI should respond with Structured Outputs that includes the response to the user and optionaly an update to the Kanban. Test thoroughly.
+---
 
-Part 10: Now add a beautiful sidebar widget to the UI supporting full AI chat, and allowing the LLM (as it determines) to update the Kanban based on its Structured Outputs. If the AI updates the Kanban, then the UI should refresh automatically.
+## Part 4: Fake User Sign In
+
+Add a login screen. Hardcoded credentials: "user" / "password".
+
+- [ ] Add POST /api/login endpoint: accepts `{username, password}`, validates against hardcoded values, sets a session cookie on success
+- [ ] Add POST /api/logout endpoint: clears the session cookie
+- [ ] Add GET /api/me endpoint: returns the current user if the cookie is valid, 401 otherwise
+- [ ] Add a login page/component in the frontend (simple form, username + password fields, submit button, error message on failure)
+- [ ] Gate the Kanban board behind auth: if not logged in, show login; if logged in, show board + logout button
+- [ ] Style login page using the project color scheme
+
+Tests and success criteria:
+- [ ] Backend unit tests: login with correct creds returns 200 + cookie; wrong creds returns 401; /api/me with valid cookie returns user; /api/me without cookie returns 401; logout clears cookie
+- [ ] Frontend unit tests: login form renders, submits, shows error on failure
+- [ ] E2E: full login -> see board -> logout -> see login flow
+- [ ] Visiting / without auth shows login page
+
+---
+
+## Part 5: Database Modeling
+
+Design and document the SQLite schema for Kanban persistence.
+
+- [ ] Create `docs/SCHEMA.md` with the proposed database schema including tables, columns, types, relationships
+- [ ] Proposed tables: users, boards, columns, cards (with position/ordering fields)
+- [ ] Save the schema also as `docs/schema.json` (machine-readable)
+- [ ] Get user sign-off on the schema
+
+Tests and success criteria:
+- [ ] Schema supports: multiple users, one board per user (extensible to many), ordered columns, ordered cards within columns, card title + details
+- [ ] User approves the schema
+
+---
+
+## Part 6: Backend API
+
+Implement CRUD API routes for the Kanban board backed by SQLite.
+
+- [ ] Create database module (`backend/app/database.py`): SQLite connection, create tables if not exist on startup
+- [ ] Seed default board data for new users on first login
+- [ ] API endpoints:
+  - GET /api/board -- returns the full board (columns + cards) for the logged-in user
+  - PUT /api/board/columns/:id -- rename a column
+  - POST /api/board/cards -- create a card in a column
+  - PUT /api/board/cards/:id -- update a card (title, details)
+  - DELETE /api/board/cards/:id -- delete a card
+  - PUT /api/board/cards/:id/move -- move a card (change column and/or position)
+- [ ] All endpoints require auth (valid session cookie)
+
+Tests and success criteria:
+- [ ] Pytest tests for every endpoint (happy path + error cases)
+- [ ] Database is created automatically if it does not exist
+- [ ] Data persists across container restarts (Docker volume)
+- [ ] Card ordering is maintained correctly after moves
+
+---
+
+## Part 7: Frontend + Backend Integration
+
+Connect the frontend to the backend API so the Kanban board is persistent.
+
+- [ ] Replace in-memory useState board state with API calls:
+  - Fetch board on mount (GET /api/board)
+  - Rename column calls PUT /api/board/columns/:id
+  - Add card calls POST /api/board/cards
+  - Delete card calls DELETE /api/board/cards/:id
+  - Drag-and-drop calls PUT /api/board/cards/:id/move
+- [ ] Add loading and error states to the UI
+- [ ] Configure frontend API base URL (relative paths since FastAPI serves everything)
+
+Tests and success criteria:
+- [ ] Frontend unit tests: mock API calls, verify correct requests are made
+- [ ] E2E tests: login, see board from DB, add card, refresh page, card persists
+- [ ] Drag-and-drop updates persist across page reload
+- [ ] Column renames persist across page reload
+
+---
+
+## Part 8: AI Connectivity
+
+Connect the backend to OpenRouter and verify it works.
+
+- [ ] Add openai Python package to backend dependencies
+- [ ] Create `backend/app/ai.py` module: configure OpenAI client with OpenRouter base URL and OPENROUTER_API_KEY from environment
+- [ ] Add GET /api/ai/test endpoint that sends a simple "What is 2+2?" prompt and returns the AI response
+- [ ] Load .env file in the backend (or pass through Docker)
+
+Tests and success criteria:
+- [ ] /api/ai/test returns a response containing "4"
+- [ ] Backend unit test with mocked OpenAI client verifies the call structure
+- [ ] OPENROUTER_API_KEY is never logged or exposed in responses
+
+---
+
+## Part 9: AI Structured Outputs
+
+Extend the AI endpoint to accept user questions with board context and return structured responses that can optionally modify the board.
+
+- [ ] Define the structured output schema: `{ message: string, board_updates?: { cards_to_create?, cards_to_update?, cards_to_delete?, cards_to_move? } }`
+- [ ] Add POST /api/ai/chat endpoint:
+  - Accepts `{ message: string, history: [{role, content}] }`
+  - Sends to AI: system prompt with board JSON + user message + history
+  - Parses structured output
+  - If board_updates present, applies them to the database
+  - Returns the AI message + whether the board was updated
+- [ ] System prompt instructs the AI on the board structure and available actions
+
+Tests and success criteria:
+- [ ] Backend unit tests with mocked AI: verify board context is sent, structured output is parsed, board updates are applied
+- [ ] Test: AI response without board updates returns message only
+- [ ] Test: AI response with card creation actually creates the card in the DB
+- [ ] Test: malformed AI output is handled gracefully
+
+---
+
+## Part 10: AI Chat Sidebar
+
+Add a sidebar chat widget to the frontend that communicates with the AI and auto-refreshes the board.
+
+- [ ] Create ChatSidebar component: collapsible panel on the right side, message list, input field, send button
+- [ ] Maintain conversation history in React state (array of {role, content})
+- [ ] On send: POST /api/ai/chat with message + history
+- [ ] Display AI response in the chat
+- [ ] If the AI updated the board, re-fetch the board data to reflect changes
+- [ ] Style the sidebar using the project color scheme (subtle, does not overwhelm the board)
+- [ ] Add a toggle button to open/close the sidebar
+
+Tests and success criteria:
+- [ ] Frontend unit tests: sidebar renders, sends messages, displays responses
+- [ ] E2E test: open sidebar, send a message like "Create a card called Test in Backlog", verify the card appears on the board
+- [ ] Conversation history is maintained within the session
+- [ ] Sidebar is responsive and does not break the board layout
