@@ -6,16 +6,16 @@ import type { BoardData } from "@/lib/kanban";
 
 const mockBoard: BoardData = {
   columns: [
-    { id: "1", title: "Backlog", cardIds: ["10", "11"] },
-    { id: "2", title: "Discovery", cardIds: ["12"] },
-    { id: "3", title: "In Progress", cardIds: [] },
-    { id: "4", title: "Review", cardIds: [] },
-    { id: "5", title: "Done", cardIds: [] },
+    { id: "col-1", title: "Backlog", cardIds: ["card-10", "card-11"] },
+    { id: "col-2", title: "Discovery", cardIds: ["card-12"] },
+    { id: "col-3", title: "In Progress", cardIds: [] },
+    { id: "col-4", title: "Review", cardIds: [] },
+    { id: "col-5", title: "Done", cardIds: [] },
   ],
   cards: {
-    "10": { id: "10", title: "Align roadmap themes", details: "Draft quarterly themes." },
-    "11": { id: "11", title: "Gather customer signals", details: "Review support tags." },
-    "12": { id: "12", title: "Prototype analytics view", details: "Sketch layout." },
+    "card-10": { id: "card-10", title: "Align roadmap themes", details: "Draft quarterly themes." },
+    "card-11": { id: "card-11", title: "Gather customer signals", details: "Review support tags." },
+    "card-12": { id: "card-12", title: "Prototype analytics view", details: "Sketch layout." },
   },
 };
 
@@ -40,7 +40,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockFetchBoard.mockResolvedValue(structuredClone(mockBoard));
   mockRenameColumn.mockResolvedValue(undefined);
-  mockCreateCard.mockResolvedValue({ id: "99", title: "Test card", details: "Notes" });
+  mockCreateCard.mockResolvedValue({ id: "card-99", title: "Test card", details: "Notes" });
   mockUpdateCard.mockResolvedValue(undefined);
   mockDeleteCard.mockResolvedValue(undefined);
 });
@@ -88,7 +88,7 @@ describe("KanbanBoard", () => {
     await userEvent.click(within(modal).getByRole("button", { name: /add card/i }));
 
     await waitFor(() => {
-      expect(mockCreateCard).toHaveBeenCalledWith("1", "Test card", "Notes");
+      expect(mockCreateCard).toHaveBeenCalledWith("col-1", "Test card", "Notes");
     });
     expect(within(column).getByText("Test card")).toBeInTheDocument();
   });
@@ -109,7 +109,7 @@ describe("KanbanBoard", () => {
     await userEvent.click(confirmButton);
 
     await waitFor(() => {
-      expect(mockDeleteCard).toHaveBeenCalledWith("10");
+      expect(mockDeleteCard).toHaveBeenCalledWith("card-10");
     });
     expect(within(column).queryByText("Align roadmap themes")).not.toBeInTheDocument();
   });
@@ -128,7 +128,7 @@ describe("KanbanBoard", () => {
     await userEvent.click(screen.getByRole("button", { name: /save/i }));
 
     await waitFor(() => {
-      expect(mockUpdateCard).toHaveBeenCalledWith("10", "Updated title", "Draft quarterly themes.");
+      expect(mockUpdateCard).toHaveBeenCalledWith("card-10", "Updated title", "Draft quarterly themes.");
     });
     expect(within(column).getByText("Updated title")).toBeInTheDocument();
   });

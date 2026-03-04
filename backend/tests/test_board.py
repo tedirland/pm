@@ -55,7 +55,7 @@ async def test_board_card_order(client: AsyncClient):
 # --- PUT /api/board/columns/:id ---
 
 async def test_rename_column_requires_auth(client: AsyncClient):
-    resp = await client.put("/api/board/columns/1", json={"title": "New"})
+    resp = await client.put("/api/board/columns/col-1", json={"title": "New"})
     assert resp.status_code == 401
 
 
@@ -73,14 +73,14 @@ async def test_rename_column(client: AsyncClient):
 
 async def test_rename_column_not_found(client: AsyncClient):
     cookies = await _login(client)
-    resp = await client.put("/api/board/columns/9999", json={"title": "X"}, cookies=cookies)
+    resp = await client.put("/api/board/columns/col-9999", json={"title": "X"}, cookies=cookies)
     assert resp.status_code == 404
 
 
 # --- POST /api/board/cards ---
 
 async def test_create_card_requires_auth(client: AsyncClient):
-    resp = await client.post("/api/board/cards", json={"column_id": "1", "title": "Test"})
+    resp = await client.post("/api/board/cards", json={"column_id": "col-1", "title": "Test"})
     assert resp.status_code == 401
 
 
@@ -111,7 +111,7 @@ async def test_create_card_invalid_column(client: AsyncClient):
     cookies = await _login(client)
     resp = await client.post(
         "/api/board/cards",
-        json={"column_id": "9999", "title": "X"},
+        json={"column_id": "col-9999", "title": "X"},
         cookies=cookies,
     )
     assert resp.status_code == 404
@@ -120,7 +120,7 @@ async def test_create_card_invalid_column(client: AsyncClient):
 # --- PUT /api/board/cards/:id ---
 
 async def test_update_card_requires_auth(client: AsyncClient):
-    resp = await client.put("/api/board/cards/1", json={"title": "X"})
+    resp = await client.put("/api/board/cards/card-1", json={"title": "X"})
     assert resp.status_code == 401
 
 
@@ -144,7 +144,7 @@ async def test_update_card(client: AsyncClient):
 async def test_update_card_not_found(client: AsyncClient):
     cookies = await _login(client)
     resp = await client.put(
-        "/api/board/cards/9999",
+        "/api/board/cards/card-9999",
         json={"title": "X"},
         cookies=cookies,
     )
@@ -154,7 +154,7 @@ async def test_update_card_not_found(client: AsyncClient):
 # --- DELETE /api/board/cards/:id ---
 
 async def test_delete_card_requires_auth(client: AsyncClient):
-    resp = await client.delete("/api/board/cards/1")
+    resp = await client.delete("/api/board/cards/card-1")
     assert resp.status_code == 401
 
 
@@ -173,14 +173,14 @@ async def test_delete_card(client: AsyncClient):
 
 async def test_delete_card_not_found(client: AsyncClient):
     cookies = await _login(client)
-    resp = await client.delete("/api/board/cards/9999", cookies=cookies)
+    resp = await client.delete("/api/board/cards/card-9999", cookies=cookies)
     assert resp.status_code == 404
 
 
 # --- PUT /api/board/cards/:id/move ---
 
 async def test_move_card_requires_auth(client: AsyncClient):
-    resp = await client.put("/api/board/cards/1/move", json={"column_id": "2", "position": 0})
+    resp = await client.put("/api/board/cards/card-1/move", json={"column_id": "col-2", "position": 0})
     assert resp.status_code == 401
 
 
@@ -232,8 +232,8 @@ async def test_move_card_within_column(client: AsyncClient):
 async def test_move_card_not_found(client: AsyncClient):
     cookies = await _login(client)
     resp = await client.put(
-        "/api/board/cards/9999/move",
-        json={"column_id": "1", "position": 0},
+        "/api/board/cards/card-9999/move",
+        json={"column_id": "col-1", "position": 0},
         cookies=cookies,
     )
     assert resp.status_code == 404

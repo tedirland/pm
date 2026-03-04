@@ -2,16 +2,16 @@ import { expect, test } from "@playwright/test";
 
 const mockBoard = {
   columns: [
-    { id: "1", title: "Backlog", cardIds: ["10", "11"] },
-    { id: "2", title: "Discovery", cardIds: ["12"] },
-    { id: "3", title: "In Progress", cardIds: [] },
-    { id: "4", title: "Review", cardIds: [] },
-    { id: "5", title: "Done", cardIds: [] },
+    { id: "col-1", title: "Backlog", cardIds: ["card-10", "card-11"] },
+    { id: "col-2", title: "Discovery", cardIds: ["card-12"] },
+    { id: "col-3", title: "In Progress", cardIds: [] },
+    { id: "col-4", title: "Review", cardIds: [] },
+    { id: "col-5", title: "Done", cardIds: [] },
   ],
   cards: {
-    "10": { id: "10", title: "Align roadmap themes", details: "Draft quarterly themes." },
-    "11": { id: "11", title: "Gather customer signals", details: "Review support tags." },
-    "12": { id: "12", title: "Prototype analytics view", details: "Sketch layout." },
+    "card-10": { id: "card-10", title: "Align roadmap themes", details: "Draft quarterly themes." },
+    "card-11": { id: "card-11", title: "Gather customer signals", details: "Review support tags." },
+    "card-12": { id: "card-12", title: "Prototype analytics view", details: "Sketch layout." },
   },
 };
 
@@ -40,7 +40,7 @@ test.beforeEach(async ({ page }) => {
     route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify({ id: "99", title: "Playwright card", details: "Added via e2e." }),
+      body: JSON.stringify({ id: "card-99", title: "Playwright card", details: "Added via e2e." }),
     })
   );
   await page.route("**/api/board/cards/*/move", (route) =>
@@ -79,8 +79,8 @@ test("adds a card to a column", async ({ page }) => {
 test("moves a card between columns", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator('[data-testid^="column-"]')).toHaveCount(5);
-  const card = page.getByTestId("card-10");
-  const targetColumn = page.getByTestId("column-4");
+  const card = page.getByTestId("card-card-10");
+  const targetColumn = page.getByTestId("column-col-4");
   const cardBox = await card.boundingBox();
   const columnBox = await targetColumn.boundingBox();
   if (!cardBox || !columnBox) {
@@ -98,7 +98,7 @@ test("moves a card between columns", async ({ page }) => {
     { steps: 12 }
   );
   await page.mouse.up();
-  await expect(targetColumn.getByTestId("card-10")).toBeVisible();
+  await expect(targetColumn.getByTestId("card-card-10")).toBeVisible();
 });
 
 test("login flow shows form when not authenticated", async ({ page }) => {

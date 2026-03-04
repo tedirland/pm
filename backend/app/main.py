@@ -74,6 +74,12 @@ def get_authenticated_user_id(session: str | None) -> int | None:
         conn.close()
 
 
+def parse_id(prefixed_id: str) -> int:
+    """Strip 'col-' or 'card-' prefix and return the integer ID."""
+    parts = prefixed_id.split("-", 1)
+    return int(parts[1]) if len(parts) == 2 and parts[0] in ("col", "card") else int(prefixed_id)
+
+
 @app.get("/api/health")
 async def health():
     return {"status": "ok"}
@@ -120,7 +126,7 @@ async def board_rename_column(column_id: str, body: ColumnRenameRequest, session
         return Response(status_code=401, content='{"error":"Not authenticated"}', media_type="application/json")
     conn = get_connection()
     try:
-        ok = rename_column(conn, int(column_id), body.title, user_id)
+        ok = rename_column(conn, parse_id(column_id), body.title, user_id)
         if not ok:
             return Response(status_code=404, content='{"error":"Column not found"}', media_type="application/json")
         return {"ok": True}
@@ -135,7 +141,7 @@ async def board_create_card(body: CardCreateRequest, session: str | None = Cooki
         return Response(status_code=401, content='{"error":"Not authenticated"}', media_type="application/json")
     conn = get_connection()
     try:
-        card = create_card(conn, int(body.column_id), body.title, body.details, user_id)
+        card = create_card(conn, parse_id(body.column_id), body.title, body.details, user_id)
         if card is None:
             return Response(status_code=404, content='{"error":"Column not found"}', media_type="application/json")
         return card
@@ -150,7 +156,7 @@ async def board_update_card(card_id: str, body: CardUpdateRequest, session: str 
         return Response(status_code=401, content='{"error":"Not authenticated"}', media_type="application/json")
     conn = get_connection()
     try:
-        ok = update_card(conn, int(card_id), body.title, body.details, user_id)
+        ok = update_card(conn, parse_id(card_id), body.title, body.details, user_id)
         if not ok:
             return Response(status_code=404, content='{"error":"Card not found"}', media_type="application/json")
         return {"ok": True}
@@ -165,7 +171,7 @@ async def board_delete_card(card_id: str, session: str | None = Cookie(default=N
         return Response(status_code=401, content='{"error":"Not authenticated"}', media_type="application/json")
     conn = get_connection()
     try:
-        ok = delete_card(conn, int(card_id), user_id)
+        ok = delete_card(conn, parse_id(card_id), user_id)
         if not ok:
             return Response(status_code=404, content='{"error":"Card not found"}', media_type="application/json")
         return {"ok": True}
@@ -180,7 +186,7 @@ async def board_move_card(card_id: str, body: CardMoveRequest, session: str | No
         return Response(status_code=401, content='{"error":"Not authenticated"}', media_type="application/json")
     conn = get_connection()
     try:
-        ok = move_card(conn, int(card_id), int(body.column_id), body.position, user_id)
+        ok = move_card(conn, parse_id(card_id), parse_id(body.column_id), body.position, user_id)
         if not ok:
             return Response(status_code=404, content='{"error":"Card or column not found"}', media_type="application/json")
         return {"ok": True}

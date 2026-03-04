@@ -143,6 +143,21 @@ Tests and success criteria:
 
 ---
 
+## Handoff Notes
+
+Key implementation details for the next agent:
+
+- **ID prefixing**: Column IDs are prefixed `col-` and card IDs `card-` in API responses (e.g. `"col-1"`, `"card-3"`). This prevents dnd-kit from confusing columns and cards when they share the same integer ID. `parse_id()` in `main.py` strips the prefix before DB queries.
+- **Auth**: Hardcoded `SESSION_TOKEN = "valid-session"` cookie. `get_authenticated_user_id()` in `main.py` validates session and auto-creates user/board via `ensure_user()`/`ensure_board()`.
+- **Frontend API client**: `frontend/src/lib/api.ts` — all API calls use relative paths (no base URL needed since FastAPI serves everything).
+- **Optimistic updates**: `KanbanBoard.tsx` updates local state immediately, then calls the API. On error it calls `loadBoard()` to re-sync from server.
+- **Docker**: `scripts/start.sh` does `docker rm -f` before `docker run` to avoid stale containers. Volume mounts `./data:/app/data` for SQLite persistence. Use `--no-cache` on rebuild if frontend changes aren't appearing.
+- **OpenRouter config**: `.env` has `OPENROUTER_API_KEY`. Model is `openai/gpt-oss-120b`. The `.env` file needs to be passed into the Docker container (not yet implemented — Part 8 needs this).
+- **Test counts**: 26 backend (pytest), 12 frontend unit (vitest), 5 e2e (playwright) = 43 total, all passing.
+- **UI components**: `CardModal` handles both create and edit. `KanbanCard` has two-click delete confirmation. Workload overview bar shows per-column card counts between header and board.
+
+---
+
 ## Part 8: AI Connectivity
 
 Connect the backend to OpenRouter and verify it works.

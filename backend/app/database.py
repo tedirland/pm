@@ -111,10 +111,10 @@ def get_board(conn: sqlite3.Connection, user_id: int) -> dict:
         ).fetchall()
         card_ids = []
         for c in col_cards:
-            cid = str(c["id"])
+            cid = f"card-{c['id']}"
             card_ids.append(cid)
             cards[cid] = {"id": cid, "title": c["title"], "details": c["details"]}
-        columns.append({"id": str(col["id"]), "title": col["title"], "cardIds": card_ids})
+        columns.append({"id": f"col-{col['id']}", "title": col["title"], "cardIds": card_ids})
     return {"columns": columns, "cards": cards}
 
 
@@ -146,7 +146,7 @@ def create_card(conn: sqlite3.Connection, column_id: int, title: str, details: s
         (column_id, title, details, max_pos + 1),
     )
     conn.commit()
-    cid = str(cur.lastrowid)
+    cid = f"card-{cur.lastrowid}"
     return {"id": cid, "title": title, "details": details}
 
 
