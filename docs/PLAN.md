@@ -88,14 +88,14 @@ Tests and success criteria:
 
 Design and document the SQLite schema for Kanban persistence.
 
-- [ ] Create `docs/SCHEMA.md` with the proposed database schema including tables, columns, types, relationships
-- [ ] Proposed tables: users, boards, columns, cards (with position/ordering fields)
-- [ ] Save the schema also as `docs/schema.json` (machine-readable)
-- [ ] Get user sign-off on the schema
+- [x] Create `docs/SCHEMA.md` with the proposed database schema including tables, columns, types, relationships
+- [x] Proposed tables: users, boards, columns, cards (with position/ordering fields)
+- [x] Save the schema also as `docs/schema.json` (machine-readable)
+- [x] Get user sign-off on the schema
 
 Tests and success criteria:
-- [ ] Schema supports: multiple users, one board per user (extensible to many), ordered columns, ordered cards within columns, card title + details
-- [ ] User approves the schema
+- [x] Schema supports: multiple users, one board per user (extensible to many), ordered columns, ordered cards within columns, card title + details
+- [x] User approves the schema
 
 ---
 
@@ -103,22 +103,22 @@ Tests and success criteria:
 
 Implement CRUD API routes for the Kanban board backed by SQLite.
 
-- [ ] Create database module (`backend/app/database.py`): SQLite connection, create tables if not exist on startup
-- [ ] Seed default board data for new users on first login
-- [ ] API endpoints:
+- [x] Create database module (`backend/app/database.py`): SQLite connection, create tables if not exist on startup
+- [x] Seed default board data for new users on first login
+- [x] API endpoints:
   - GET /api/board -- returns the full board (columns + cards) for the logged-in user
   - PUT /api/board/columns/:id -- rename a column
   - POST /api/board/cards -- create a card in a column
   - PUT /api/board/cards/:id -- update a card (title, details)
   - DELETE /api/board/cards/:id -- delete a card
   - PUT /api/board/cards/:id/move -- move a card (change column and/or position)
-- [ ] All endpoints require auth (valid session cookie)
+- [x] All endpoints require auth (valid session cookie)
 
 Tests and success criteria:
-- [ ] Pytest tests for every endpoint (happy path + error cases)
-- [ ] Database is created automatically if it does not exist
-- [ ] Data persists across container restarts (Docker volume)
-- [ ] Card ordering is maintained correctly after moves
+- [x] Pytest tests for every endpoint (happy path + error cases)
+- [x] Database is created automatically if it does not exist
+- [x] Data persists across container restarts (Docker volume)
+- [x] Card ordering is maintained correctly after moves
 
 ---
 
@@ -126,20 +126,20 @@ Tests and success criteria:
 
 Connect the frontend to the backend API so the Kanban board is persistent.
 
-- [ ] Replace in-memory useState board state with API calls:
+- [x] Replace in-memory useState board state with API calls:
   - Fetch board on mount (GET /api/board)
   - Rename column calls PUT /api/board/columns/:id
   - Add card calls POST /api/board/cards
   - Delete card calls DELETE /api/board/cards/:id
   - Drag-and-drop calls PUT /api/board/cards/:id/move
-- [ ] Add loading and error states to the UI
-- [ ] Configure frontend API base URL (relative paths since FastAPI serves everything)
+- [x] Add loading and error states to the UI
+- [x] Configure frontend API base URL (relative paths since FastAPI serves everything)
 
 Tests and success criteria:
-- [ ] Frontend unit tests: mock API calls, verify correct requests are made
-- [ ] E2E tests: login, see board from DB, add card, refresh page, card persists
-- [ ] Drag-and-drop updates persist across page reload
-- [ ] Column renames persist across page reload
+- [x] Frontend unit tests: mock API calls, verify correct requests are made
+- [x] E2E tests: login, see board from DB, add card, refresh page, card persists
+- [x] Drag-and-drop updates persist across page reload
+- [x] Column renames persist across page reload
 
 ---
 

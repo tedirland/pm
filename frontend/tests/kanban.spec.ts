@@ -1,6 +1,21 @@
 import { expect, test } from "@playwright/test";
 
-// Mock auth endpoints so e2e tests work against the Next.js dev server
+const mockBoard = {
+  columns: [
+    { id: "1", title: "Backlog", cardIds: ["10", "11"] },
+    { id: "2", title: "Discovery", cardIds: ["12"] },
+    { id: "3", title: "In Progress", cardIds: [] },
+    { id: "4", title: "Review", cardIds: [] },
+    { id: "5", title: "Done", cardIds: [] },
+  ],
+  cards: {
+    "10": { id: "10", title: "Align roadmap themes", details: "Draft quarterly themes." },
+    "11": { id: "11", title: "Gather customer signals", details: "Review support tags." },
+    "12": { id: "12", title: "Prototype analytics view", details: "Sketch layout." },
+  },
+};
+
+// Mock auth and board endpoints so e2e tests work against the Next.js dev server
 test.beforeEach(async ({ page }) => {
   await page.route("**/api/me", (route) =>
     route.fulfill({ status: 200, contentType: "application/json", body: '{"username":"user"}' })
@@ -8,6 +23,38 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/api/logout", (route) =>
     route.fulfill({ status: 200, contentType: "application/json", body: '{"ok":true}' })
   );
+  await page.route("**/api/board", (route) => {
+    if (route.request().method() === "GET") {
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(mockBoard),
+      });
+    }
+    return route.continue();
+  });
+  await page.route("**/api/board/columns/*", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: '{"ok":true}' })
+  );
+  await page.route("**/api/board/cards", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ id: "99", title: "Playwright card", details: "Added via e2e." }),
+    })
+  );
+  await page.route("**/api/board/cards/*/move", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: '{"ok":true}' })
+  );
+  await page.route("**/api/board/cards/*", (route) => {
+    if (route.request().method() === "DELETE") {
+      return route.fulfill({ status: 200, contentType: "application/json", body: '{"ok":true}' });
+    }
+    if (route.request().method() === "PUT") {
+      return route.fulfill({ status: 200, contentType: "application/json", body: '{"ok":true}' });
+    }
+    return route.continue();
+  });
 });
 
 test("loads the kanban board", async ({ page }) => {
@@ -18,6 +65,7 @@ test("loads the kanban board", async ({ page }) => {
 
 test("adds a card to a column", async ({ page }) => {
   await page.goto("/");
+  await expect(page.locator('[data-testid^="column-"]')).toHaveCount(5);
   const firstColumn = page.locator('[data-testid^="column-"]').first();
   await firstColumn.getByRole("button", { name: /add a card/i }).click();
 
@@ -30,8 +78,9 @@ test("adds a card to a column", async ({ page }) => {
 
 test("moves a card between columns", async ({ page }) => {
   await page.goto("/");
-  const card = page.getByTestId("card-card-1");
-  const targetColumn = page.getByTestId("column-col-review");
+  await expect(page.locator('[data-testid^="column-"]')).toHaveCount(5);
+  const card = page.getByTestId("card-10");
+  const targetColumn = page.getByTestId("column-4");
   const cardBox = await card.boundingBox();
   const columnBox = await targetColumn.boundingBox();
   if (!cardBox || !columnBox) {
@@ -49,7 +98,7 @@ test("moves a card between columns", async ({ page }) => {
     { steps: 12 }
   );
   await page.mouse.up();
-  await expect(targetColumn.getByTestId("card-card-1")).toBeVisible();
+  await expect(targetColumn.getByTestId("card-10")).toBeVisible();
 });
 
 test("login flow shows form when not authenticated", async ({ page }) => {

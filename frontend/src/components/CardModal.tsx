@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 
 type CardModalProps = {
   mode: "create" | "edit";
+  columnName?: string;
   initialTitle?: string;
   initialDetails?: string;
   onSubmit: (title: string, details: string) => void;
@@ -12,6 +13,7 @@ type CardModalProps = {
 
 export const CardModal = ({
   mode,
+  columnName,
   initialTitle = "",
   initialDetails = "",
   onSubmit,
@@ -54,6 +56,11 @@ export const CardModal = ({
         <h2 className="font-display text-lg font-semibold text-[var(--navy-dark)]">
           {mode === "create" ? "New card" : "Edit card"}
         </h2>
+        {mode === "create" && columnName && (
+          <p className="mt-1 text-xs font-semibold text-[var(--gray-text)]">
+            Adding to <span className="text-[var(--primary-blue)]">{columnName}</span>
+          </p>
+        )}
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           <div>
             <label

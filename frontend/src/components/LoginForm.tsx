@@ -52,6 +52,9 @@ export const LoginForm = ({ onLogin }: LoginFormProps) => {
           <h1 className="mt-2 font-display text-2xl font-semibold text-[var(--navy-dark)]">
             Kanban Studio
           </h1>
+          <p className="mt-2 text-sm leading-relaxed text-[var(--gray-text)]">
+            Organize your work with AI-powered task management.
+          </p>
 
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             <div>
@@ -65,7 +68,8 @@ export const LoginForm = ({ onLogin }: LoginFormProps) => {
                 id="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm font-medium text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)]"
+                placeholder="user"
+                className="mt-1 w-full rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm font-medium text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)] placeholder:text-[var(--gray-text)]/40"
                 required
               />
             </div>
@@ -81,7 +85,8 @@ export const LoginForm = ({ onLogin }: LoginFormProps) => {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm font-medium text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)]"
+                placeholder="password"
+                className="mt-1 w-full rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm font-medium text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)] placeholder:text-[var(--gray-text)]/40"
                 required
               />
             </div>
