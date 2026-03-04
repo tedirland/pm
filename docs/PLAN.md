@@ -149,11 +149,14 @@ Key implementation details for the next agent:
 
 - **ID prefixing**: Column IDs are prefixed `col-` and card IDs `card-` in API responses (e.g. `"col-1"`, `"card-3"`). This prevents dnd-kit from confusing columns and cards when they share the same integer ID. `parse_id()` in `main.py` strips the prefix before DB queries.
 - **Auth**: Hardcoded `SESSION_TOKEN = "valid-session"` cookie. `get_authenticated_user_id()` in `main.py` validates session and auto-creates user/board via `ensure_user()`/`ensure_board()`.
-- **Frontend API client**: `frontend/src/lib/api.ts` — all API calls use relative paths (no base URL needed since FastAPI serves everything).
+- **Frontend API client**: `frontend/src/lib/api.ts` — all API calls use relative paths (no base URL needed since FastAPI serves everything). Includes `sendChat()` for AI chat.
 - **Optimistic updates**: `KanbanBoard.tsx` updates local state immediately, then calls the API. On error it calls `loadBoard()` to re-sync from server.
-- **Docker**: `scripts/start.sh` does `docker rm -f` before `docker run` to avoid stale containers. Volume mounts `./data:/app/data` for SQLite persistence. Use `--no-cache` on rebuild if frontend changes aren't appearing.
-- **OpenRouter config**: `.env` has `OPENROUTER_API_KEY`. Model is `openai/gpt-oss-120b`. The `.env` file needs to be passed into the Docker container (not yet implemented — Part 8 needs this).
-- **Test counts**: 26 backend (pytest), 12 frontend unit (vitest), 5 e2e (playwright) = 43 total, all passing.
+- **Docker**: `scripts/start.sh` does `docker rm -f` before `docker run` to avoid stale containers. Volume mounts `./data:/app/data` for SQLite persistence. Use `--no-cache` on rebuild if frontend changes aren't appearing (browser caching of static assets is common -- hard refresh with Cmd+Shift+R may also be needed).
+- **OpenRouter config**: `.env` has `OPENROUTER_API_KEY`, passed to Docker via `--env-file .env`. Model is `openai/gpt-oss-120b`. AI client configured in `backend/app/ai.py` using the openai Python package with OpenRouter base URL.
+- **AI module** (`backend/app/ai.py`): `ai_chat()` sends board context + conversation history to the model with a structured JSON response format. `parse_ai_response()` handles edge cases: unwraps nested responses (model sometimes wraps in `{"final":{...}}`), returns a fallback message when the model returns empty `{}`. System prompt includes explicit examples of the expected flat JSON format.
+- **AI chat sidebar** (`frontend/src/components/ChatSidebar.tsx`): Sliding panel toggled via "AI Chat" button in the board header. Conversation history kept in React state (lost on refresh). `FormattedMessage` sub-component renders lightweight markdown (bold, italic, bullet lists, line breaks) in AI responses. Board auto-refreshes when AI makes changes via `onBoardUpdated` callback.
+- **Board update application**: `_apply_board_updates()` in `main.py` resolves column titles to IDs so the AI can reference columns by name (e.g. "Backlog" instead of "col-1"). Supports create, update, delete, and move operations.
+- **Test counts**: 41 backend (pytest), 19 frontend unit (vitest), 5 e2e (playwright) = 65 total, all passing.
 - **UI components**: `CardModal` handles both create and edit. `KanbanCard` has two-click delete confirmation. Workload overview bar shows per-column card counts between header and board.
 
 ---
