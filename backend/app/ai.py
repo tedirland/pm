@@ -6,6 +6,9 @@ from openai import OpenAI
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 MODEL = "openai/gpt-oss-120b"
 
+# Maximum number of cards to include in AI context to avoid token limits
+MAX_CARDS_FOR_AI = 100
+
 SYSTEM_PROMPT = """You are a helpful project management assistant for a Kanban board app.
 
 The user's current board state is provided below as JSON. You can help the user by answering questions about their board, or by making changes to it.
@@ -52,12 +55,35 @@ def ai_test() -> str:
     return response.choices[0].message.content or ""
 
 
+def _truncate_board_for_ai(board_json: dict) -> tuple[dict, bool]:
+    """Truncate board to MAX_CARDS_FOR_AI cards if needed. Returns (board, was_truncated)."""
+    cards = board_json.get("cards", {})
+    if len(cards) <= MAX_CARDS_FOR_AI:
+        return board_json, False
+
+    # Keep only first MAX_CARDS_FOR_AI cards and update column cardIds accordingly
+    truncated_cards = dict(list(cards.items())[:MAX_CARDS_FOR_AI])
+    truncated_card_ids = set(truncated_cards.keys())
+
+    truncated_columns = []
+    for col in board_json.get("columns", []):
+        new_card_ids = [cid for cid in col.get("cardIds", []) if cid in truncated_card_ids]
+        truncated_columns.append({**col, "cardIds": new_card_ids})
+
+    return {"columns": truncated_columns, "cards": truncated_cards}, True
+
+
 def ai_chat(board_json: dict, message: str, history: list[dict]) -> dict:
     """Send a chat message with board context and return parsed structured response."""
     client = get_ai_client()
 
-    system_content = SYSTEM_PROMPT + json.dumps(board_json, indent=2)
+    # Truncate large boards to avoid token limits
+    board_for_ai, was_truncated = _truncate_board_for_ai(board_json)
+    board_str = json.dumps(board_for_ai, indent=2)
+    if was_truncated:
+        board_str += f"\n\n(Note: Board truncated to {MAX_CARDS_FOR_AI} cards for context limit)"
 
+    system_content = SYSTEM_PROMPT + board_str
     messages = [{"role": "system", "content": system_content}]
     for entry in history:
         messages.append({"role": entry["role"], "content": entry["content"]})

@@ -56,7 +56,7 @@ backend/
 
 **ID Prefixing:** Column IDs use "col-" prefix, card IDs use "card-" prefix. The `parse_id()` function in main.py strips prefixes for DB queries. This prevents dnd-kit from confusing columns and cards.
 
-**Auth:** Hardcoded `SESSION_TOKEN = "valid-session"` cookie. `get_authenticated_user_id()` validates session and auto-creates user/board via `ensure_user()`/`ensure_board()`. Credentials: "user"/"password".
+**Auth (MVP only):** Hardcoded `SESSION_TOKEN = "valid-session"` cookie. `get_authenticated_user_id()` validates session and auto-creates user/board via `ensure_user()`/`ensure_board()`. Credentials: "user"/"password". **This must be replaced with proper authentication (OAuth, JWT, etc.) before production.**
 
 **Database:** SQLite at `/app/data/kanban.db`. One board per user. 5 default columns + 8 sample cards seeded on board initialization.
 

@@ -39,10 +39,18 @@ export const ChatSidebar = ({ open, onClose, onBoardUpdated }: ChatSidebarProps)
       const assistantMsg: ChatMessage = { role: "assistant", content: resp.message };
       setHistory([...updatedHistory, assistantMsg]);
       if (resp.board_updated) onBoardUpdated();
-    } catch {
+    } catch (err) {
+      let errorContent = "Sorry, something went wrong. Please try again.";
+      if (err instanceof Error) {
+        if (err.message.includes("Failed to fetch") || err.message.includes("NetworkError")) {
+          errorContent = "Network error. Please check your connection and try again.";
+        } else if (err.message.includes("401") || err.message.includes("authenticated")) {
+          errorContent = "Session expired. Please refresh the page and sign in again.";
+        }
+      }
       const errorMsg: ChatMessage = {
         role: "assistant",
-        content: "Sorry, something went wrong. Please try again.",
+        content: errorContent,
       };
       setHistory([...updatedHistory, errorMsg]);
     } finally {

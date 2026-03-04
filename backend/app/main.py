@@ -1,4 +1,6 @@
+import json
 import os
+import sqlite3
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -73,16 +75,29 @@ class ChatRequest(BaseModel):
     history: list[ChatMessage] = []
 
 
-def get_authenticated_user_id(session: str | None) -> int | None:
+def _error_response(status_code: int, message: str) -> Response:
+    """Return a JSON error response with proper escaping."""
+    return Response(
+        status_code=status_code,
+        content=json.dumps({"error": message}),
+        media_type="application/json",
+    )
+
+
+def get_authenticated_user_id(session: str | None, conn: sqlite3.Connection | None = None) -> int | None:
+    """Validate session and return user_id. If conn is provided, uses it; otherwise opens a new connection."""
     if session != SESSION_TOKEN:
         return None
-    conn = get_connection()
+    should_close = conn is None
+    if conn is None:
+        conn = get_connection()
     try:
         user_id = ensure_user(conn, VALID_USERNAME)
         ensure_board(conn, user_id)
         return user_id
     finally:
-        conn.close()
+        if should_close:
+            conn.close()
 
 
 def parse_id(prefixed_id: str) -> int:
@@ -100,21 +115,21 @@ async def health():
 async def ai_test_endpoint(session: str | None = Cookie(default=None)):
     user_id = get_authenticated_user_id(session)
     if user_id is None:
-        return Response(status_code=401, content='{"error":"Not authenticated"}', media_type="application/json")
+        return _error_response(401, "Not authenticated")
     try:
         result = ai_test()
         return {"response": result}
     except Exception as e:
-        return Response(status_code=500, content=f'{{"error":"{str(e)}"}}', media_type="application/json")
+        return _error_response(500, str(e))
 
 
 @app.post("/api/ai/chat")
 async def ai_chat_endpoint(body: ChatRequest, session: str | None = Cookie(default=None)):
-    user_id = get_authenticated_user_id(session)
-    if user_id is None:
-        return Response(status_code=401, content='{"error":"Not authenticated"}', media_type="application/json")
     conn = get_connection()
     try:
+        user_id = get_authenticated_user_id(session, conn)
+        if user_id is None:
+            return _error_response(401, "Not authenticated")
         board_data = get_board(conn, user_id)
         history = [{"role": m.role, "content": m.content} for m in body.history]
         result = ai_chat(board_data, body.message, history)
@@ -126,7 +141,7 @@ async def ai_chat_endpoint(body: ChatRequest, session: str | None = Cookie(defau
 
         return {"message": result["message"], "board_updated": board_changed}
     except Exception as e:
-        return Response(status_code=500, content=f'{{"error":"{str(e)}"}}', media_type="application/json")
+        return _error_response(500, str(e))
     finally:
         conn.close()
 
@@ -181,7 +196,7 @@ async def login(body: LoginRequest, response: Response):
     if body.username == VALID_USERNAME and body.password == VALID_PASSWORD:
         response.set_cookie(key="session", value=SESSION_TOKEN, httponly=True, samesite="lax")
         return {"username": body.username}
-    return Response(status_code=401, content='{"error":"Invalid credentials"}', media_type="application/json")
+    return _error_response(401, "Invalid credentials")
 
 
 @app.post("/api/logout")
@@ -194,16 +209,16 @@ async def logout(response: Response):
 async def me(session: str | None = Cookie(default=None)):
     if session == SESSION_TOKEN:
         return {"username": VALID_USERNAME}
-    return Response(status_code=401, content='{"error":"Not authenticated"}', media_type="application/json")
+    return _error_response(401, "Not authenticated")
 
 
 @app.get("/api/board")
 async def board_get(session: str | None = Cookie(default=None)):
-    user_id = get_authenticated_user_id(session)
-    if user_id is None:
-        return Response(status_code=401, content='{"error":"Not authenticated"}', media_type="application/json")
     conn = get_connection()
     try:
+        user_id = get_authenticated_user_id(session, conn)
+        if user_id is None:
+            return _error_response(401, "Not authenticated")
         data = get_board(conn, user_id)
         return data
     finally:
@@ -212,14 +227,14 @@ async def board_get(session: str | None = Cookie(default=None)):
 
 @app.put("/api/board/columns/{column_id}")
 async def board_rename_column(column_id: str, body: ColumnRenameRequest, session: str | None = Cookie(default=None)):
-    user_id = get_authenticated_user_id(session)
-    if user_id is None:
-        return Response(status_code=401, content='{"error":"Not authenticated"}', media_type="application/json")
     conn = get_connection()
     try:
+        user_id = get_authenticated_user_id(session, conn)
+        if user_id is None:
+            return _error_response(401, "Not authenticated")
         ok = rename_column(conn, parse_id(column_id), body.title, user_id)
         if not ok:
-            return Response(status_code=404, content='{"error":"Column not found"}', media_type="application/json")
+            return _error_response(404, "Column not found")
         return {"ok": True}
     finally:
         conn.close()
@@ -227,14 +242,14 @@ async def board_rename_column(column_id: str, body: ColumnRenameRequest, session
 
 @app.post("/api/board/cards")
 async def board_create_card(body: CardCreateRequest, session: str | None = Cookie(default=None)):
-    user_id = get_authenticated_user_id(session)
-    if user_id is None:
-        return Response(status_code=401, content='{"error":"Not authenticated"}', media_type="application/json")
     conn = get_connection()
     try:
+        user_id = get_authenticated_user_id(session, conn)
+        if user_id is None:
+            return _error_response(401, "Not authenticated")
         card = create_card(conn, parse_id(body.column_id), body.title, body.details, user_id)
         if card is None:
-            return Response(status_code=404, content='{"error":"Column not found"}', media_type="application/json")
+            return _error_response(404, "Column not found")
         return card
     finally:
         conn.close()
@@ -242,14 +257,14 @@ async def board_create_card(body: CardCreateRequest, session: str | None = Cooki
 
 @app.put("/api/board/cards/{card_id}")
 async def board_update_card(card_id: str, body: CardUpdateRequest, session: str | None = Cookie(default=None)):
-    user_id = get_authenticated_user_id(session)
-    if user_id is None:
-        return Response(status_code=401, content='{"error":"Not authenticated"}', media_type="application/json")
     conn = get_connection()
     try:
+        user_id = get_authenticated_user_id(session, conn)
+        if user_id is None:
+            return _error_response(401, "Not authenticated")
         ok = update_card(conn, parse_id(card_id), body.title, body.details, user_id)
         if not ok:
-            return Response(status_code=404, content='{"error":"Card not found"}', media_type="application/json")
+            return _error_response(404, "Card not found")
         return {"ok": True}
     finally:
         conn.close()
@@ -257,14 +272,14 @@ async def board_update_card(card_id: str, body: CardUpdateRequest, session: str 
 
 @app.delete("/api/board/cards/{card_id}")
 async def board_delete_card(card_id: str, session: str | None = Cookie(default=None)):
-    user_id = get_authenticated_user_id(session)
-    if user_id is None:
-        return Response(status_code=401, content='{"error":"Not authenticated"}', media_type="application/json")
     conn = get_connection()
     try:
+        user_id = get_authenticated_user_id(session, conn)
+        if user_id is None:
+            return _error_response(401, "Not authenticated")
         ok = delete_card(conn, parse_id(card_id), user_id)
         if not ok:
-            return Response(status_code=404, content='{"error":"Card not found"}', media_type="application/json")
+            return _error_response(404, "Card not found")
         return {"ok": True}
     finally:
         conn.close()
@@ -272,14 +287,14 @@ async def board_delete_card(card_id: str, session: str | None = Cookie(default=N
 
 @app.put("/api/board/cards/{card_id}/move")
 async def board_move_card(card_id: str, body: CardMoveRequest, session: str | None = Cookie(default=None)):
-    user_id = get_authenticated_user_id(session)
-    if user_id is None:
-        return Response(status_code=401, content='{"error":"Not authenticated"}', media_type="application/json")
     conn = get_connection()
     try:
+        user_id = get_authenticated_user_id(session, conn)
+        if user_id is None:
+            return _error_response(401, "Not authenticated")
         ok = move_card(conn, parse_id(card_id), parse_id(body.column_id), body.position, user_id)
         if not ok:
-            return Response(status_code=404, content='{"error":"Card or column not found"}', media_type="application/json")
+            return _error_response(404, "Card or column not found")
         return {"ok": True}
     finally:
         conn.close()

@@ -67,14 +67,19 @@ describe("KanbanBoard", () => {
   });
 
   it("renames a column and calls API", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     render(<KanbanBoard />);
     await waitFor(() => screen.getAllByTestId(/column-/i));
     const column = getFirstColumn();
     const input = within(column).getByLabelText("Column title");
-    await userEvent.clear(input);
-    await userEvent.type(input, "Todo");
+    await user.clear(input);
+    await user.type(input, "Todo");
     expect(input).toHaveValue("Todo");
+    // Wait for debounce (500ms)
+    await vi.advanceTimersByTimeAsync(500);
     expect(mockRenameColumn).toHaveBeenCalled();
+    vi.useRealTimers();
   });
 
   it("adds a card via modal and calls API", async () => {
