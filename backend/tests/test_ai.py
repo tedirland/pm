@@ -270,3 +270,19 @@ def test_parse_valid_with_updates():
     assert result["message"] == "Done"
     assert result["board_updates"] is not None
     assert len(result["board_updates"]["cards_to_create"]) == 1
+
+
+def test_parse_unwraps_nested_response():
+    """Models that wrap the response in an extra key are handled."""
+    raw = json.dumps({
+        "final": {
+            "message": "Created the card.",
+            "board_updates": {
+                "cards_to_create": [{"column_title": "Backlog", "title": "X", "details": ""}]
+            }
+        }
+    })
+    result = parse_ai_response(raw)
+    assert result["message"] == "Created the card."
+    assert result["board_updates"] is not None
+    assert len(result["board_updates"]["cards_to_create"]) == 1

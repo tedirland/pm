@@ -20,23 +20,18 @@ When you want to modify the board, include a "board_updates" object in your resp
 Column titles and card IDs come from the board state below. Card IDs look like "card-1", "card-2", etc.
 
 IMPORTANT RULES:
-- Always respond with valid JSON matching the schema below, nothing else.
+- Your entire response must be a single flat JSON object with "message" at the top level. Do NOT nest it inside another key.
 - The "message" field is required and should be a natural language response to the user.
 - The "board_updates" field is optional. Only include it if you are making changes.
 - When creating cards, use the column's title (e.g. "Backlog", "In Progress"), not its ID.
 - When moving cards, use the column's title.
 - You can perform multiple operations at once.
 
-Response schema:
-{
-  "message": "string (required) - your response to the user",
-  "board_updates": {
-    "cards_to_create": [{"column_title": "string", "title": "string", "details": "string"}],
-    "cards_to_update": [{"card_id": "string", "title": "string", "details": "string"}],
-    "cards_to_delete": [{"card_id": "string"}],
-    "cards_to_move": [{"card_id": "string", "column_title": "string", "position": 0}]
-  }
-}
+Example response with no board changes:
+{"message": "You have 5 columns."}
+
+Example response with board changes:
+{"message": "Done! I created the card.", "board_updates": {"cards_to_create": [{"column_title": "Backlog", "title": "My card", "details": "Some details"}]}}
 
 Current board state:
 """
@@ -85,7 +80,18 @@ def parse_ai_response(raw: str) -> dict:
     except json.JSONDecodeError:
         return {"message": raw, "board_updates": None}
 
-    if not isinstance(data, dict) or "message" not in data:
+    if not isinstance(data, dict):
+        return {"message": str(data), "board_updates": None}
+
+    # Some models wrap the response in an extra key (e.g. {"final": {...}}).
+    # Unwrap if "message" is missing but there's a single nested dict that has it.
+    if "message" not in data:
+        for v in data.values():
+            if isinstance(v, dict) and "message" in v:
+                data = v
+                break
+
+    if "message" not in data:
         return {"message": str(data), "board_updates": None}
 
     result: dict = {"message": data["message"]}
