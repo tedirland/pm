@@ -26,6 +26,7 @@ vi.mock("@/lib/api", () => ({
   updateCard: vi.fn(),
   deleteCard: vi.fn(),
   moveCardApi: vi.fn(),
+  sendChat: vi.fn(),
 }));
 
 import * as api from "@/lib/api";

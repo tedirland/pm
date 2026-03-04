@@ -199,16 +199,16 @@ Tests and success criteria:
 
 Add a sidebar chat widget to the frontend that communicates with the AI and auto-refreshes the board.
 
-- [ ] Create ChatSidebar component: collapsible panel on the right side, message list, input field, send button
-- [ ] Maintain conversation history in React state (array of {role, content})
-- [ ] On send: POST /api/ai/chat with message + history
-- [ ] Display AI response in the chat
-- [ ] If the AI updated the board, re-fetch the board data to reflect changes
-- [ ] Style the sidebar using the project color scheme (subtle, does not overwhelm the board)
-- [ ] Add a toggle button to open/close the sidebar
+- [x] Create ChatSidebar component: collapsible panel on the right side, message list, input field, send button
+- [x] Maintain conversation history in React state (array of {role, content})
+- [x] On send: POST /api/ai/chat with message + history
+- [x] Display AI response in the chat
+- [x] If the AI updated the board, re-fetch the board data to reflect changes
+- [x] Style the sidebar using the project color scheme (subtle, does not overwhelm the board)
+- [x] Add a toggle button to open/close the sidebar
 
 Tests and success criteria:
-- [ ] Frontend unit tests: sidebar renders, sends messages, displays responses
-- [ ] E2E test: open sidebar, send a message like "Create a card called Test in Backlog", verify the card appears on the board
-- [ ] Conversation history is maintained within the session
-- [ ] Sidebar is responsive and does not break the board layout
+- [x] Frontend unit tests: sidebar renders, sends messages, displays responses
+- [x] E2E test: open sidebar, send a message like "Create a card called Test in Backlog", verify the card appears on the board
+- [x] Conversation history is maintained within the session
+- [x] Sidebar is responsive and does not break the board layout

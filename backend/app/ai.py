@@ -92,6 +92,9 @@ def parse_ai_response(raw: str) -> dict:
                 break
 
     if "message" not in data:
+        # Empty or unrecognized response
+        if not data:
+            return {"message": "I couldn't process that request. Please try again.", "board_updates": None}
         return {"message": str(data), "board_updates": None}
 
     result: dict = {"message": data["message"]}

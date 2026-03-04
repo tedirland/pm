@@ -61,3 +61,20 @@ export async function moveCardApi(
   });
   if (!resp.ok) throw new Error("Failed to move card");
 }
+
+export type ChatMessage = { role: "user" | "assistant"; content: string };
+
+export type ChatResponse = { message: string; board_updated: boolean };
+
+export async function sendChat(
+  message: string,
+  history: ChatMessage[],
+): Promise<ChatResponse> {
+  const resp = await fetch("/api/ai/chat", {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ message, history }),
+  });
+  if (!resp.ok) throw new Error("Failed to send message");
+  return resp.json();
+}

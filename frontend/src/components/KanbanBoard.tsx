@@ -14,6 +14,7 @@ import {
 import { KanbanColumn } from "@/components/KanbanColumn";
 import { KanbanCardPreview } from "@/components/KanbanCardPreview";
 import { CardModal } from "@/components/CardModal";
+import { ChatSidebar } from "@/components/ChatSidebar";
 import { moveCard, type BoardData } from "@/lib/kanban";
 import {
   fetchBoard,
@@ -40,6 +41,7 @@ export const KanbanBoard = ({ username, onLogout }: KanbanBoardProps) => {
   const [error, setError] = useState<string | null>(null);
   const [activeCardId, setActiveCardId] = useState<string | null>(null);
   const [modal, setModal] = useState<ModalState>(null);
+  const [chatOpen, setChatOpen] = useState(false);
 
   const loadBoard = useCallback(async () => {
     try {
@@ -204,6 +206,13 @@ export const KanbanBoard = ({ username, onLogout }: KanbanBoardProps) => {
               </span>
               <button
                 type="button"
+                onClick={() => setChatOpen(true)}
+                className="rounded-full border border-[var(--secondary-purple)] px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-[var(--secondary-purple)] transition hover:bg-[var(--secondary-purple)] hover:text-white"
+              >
+                AI Chat
+              </button>
+              <button
+                type="button"
                 onClick={onLogout}
                 className="rounded-full border border-[var(--stroke)] px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-[var(--gray-text)] transition hover:text-[var(--navy-dark)]"
               >
@@ -286,6 +295,12 @@ export const KanbanBoard = ({ username, onLogout }: KanbanBoardProps) => {
           onClose={() => setModal(null)}
         />
       )}
+
+      <ChatSidebar
+        open={chatOpen}
+        onClose={() => setChatOpen(false)}
+        onBoardUpdated={loadBoard}
+      />
     </div>
   );
 };
