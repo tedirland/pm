@@ -162,15 +162,15 @@ Key implementation details for the next agent:
 
 Connect the backend to OpenRouter and verify it works.
 
-- [ ] Add openai Python package to backend dependencies
-- [ ] Create `backend/app/ai.py` module: configure OpenAI client with OpenRouter base URL and OPENROUTER_API_KEY from environment
-- [ ] Add GET /api/ai/test endpoint that sends a simple "What is 2+2?" prompt and returns the AI response
-- [ ] Load .env file in the backend (or pass through Docker)
+- [x] Add openai Python package to backend dependencies
+- [x] Create `backend/app/ai.py` module: configure OpenAI client with OpenRouter base URL and OPENROUTER_API_KEY from environment
+- [x] Add GET /api/ai/test endpoint that sends a simple "What is 2+2?" prompt and returns the AI response
+- [x] Load .env file in the backend (or pass through Docker)
 
 Tests and success criteria:
-- [ ] /api/ai/test returns a response containing "4"
-- [ ] Backend unit test with mocked OpenAI client verifies the call structure
-- [ ] OPENROUTER_API_KEY is never logged or exposed in responses
+- [x] /api/ai/test returns a response containing "4"
+- [x] Backend unit test with mocked OpenAI client verifies the call structure
+- [x] OPENROUTER_API_KEY is never logged or exposed in responses
 
 ---
 

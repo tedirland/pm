@@ -7,6 +7,7 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from app.ai import ai_test
 from app.database import (
     create_card,
     delete_card,
@@ -83,6 +84,18 @@ def parse_id(prefixed_id: str) -> int:
 @app.get("/api/health")
 async def health():
     return {"status": "ok"}
+
+
+@app.get("/api/ai/test")
+async def ai_test_endpoint(session: str | None = Cookie(default=None)):
+    user_id = get_authenticated_user_id(session)
+    if user_id is None:
+        return Response(status_code=401, content='{"error":"Not authenticated"}', media_type="application/json")
+    try:
+        result = ai_test()
+        return {"response": result}
+    except Exception as e:
+        return Response(status_code=500, content=f'{{"error":"{str(e)}"}}', media_type="application/json")
 
 
 @app.post("/api/login")
