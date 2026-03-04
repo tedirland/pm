@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from app.ai import ai_test
+from app.ai import ai_chat, ai_test
 from app.database import (
     create_card,
     delete_card,
@@ -63,6 +63,16 @@ class ColumnRenameRequest(BaseModel):
     title: str
 
 
+class ChatMessage(BaseModel):
+    role: str
+    content: str
+
+
+class ChatRequest(BaseModel):
+    message: str
+    history: list[ChatMessage] = []
+
+
 def get_authenticated_user_id(session: str | None) -> int | None:
     if session != SESSION_TOKEN:
         return None
@@ -96,6 +106,74 @@ async def ai_test_endpoint(session: str | None = Cookie(default=None)):
         return {"response": result}
     except Exception as e:
         return Response(status_code=500, content=f'{{"error":"{str(e)}"}}', media_type="application/json")
+
+
+@app.post("/api/ai/chat")
+async def ai_chat_endpoint(body: ChatRequest, session: str | None = Cookie(default=None)):
+    user_id = get_authenticated_user_id(session)
+    if user_id is None:
+        return Response(status_code=401, content='{"error":"Not authenticated"}', media_type="application/json")
+    conn = get_connection()
+    try:
+        board_data = get_board(conn, user_id)
+        history = [{"role": m.role, "content": m.content} for m in body.history]
+        result = ai_chat(board_data, body.message, history)
+
+        board_changed = False
+        updates = result.get("board_updates")
+        if updates:
+            board_changed = _apply_board_updates(conn, updates, user_id)
+
+        return {"message": result["message"], "board_updated": board_changed}
+    except Exception as e:
+        return Response(status_code=500, content=f'{{"error":"{str(e)}"}}', media_type="application/json")
+    finally:
+        conn.close()
+
+
+def _apply_board_updates(conn, updates: dict, user_id: int) -> bool:
+    """Apply AI-requested board changes. Returns True if any changes were made."""
+    changed = False
+
+    # Resolve column titles to IDs
+    board_id = ensure_board(conn, user_id)
+    col_rows = conn.execute(
+        "SELECT id, title FROM columns WHERE board_id = ?", (board_id,)
+    ).fetchall()
+    col_by_title = {r["title"]: r["id"] for r in col_rows}
+
+    for card in updates.get("cards_to_create", []):
+        col_id = col_by_title.get(card.get("column_title"))
+        if col_id:
+            create_card(conn, col_id, card["title"], card.get("details", ""), user_id)
+            changed = True
+
+    for card in updates.get("cards_to_update", []):
+        cid = parse_id(card["card_id"])
+        title = card.get("title")
+        details = card.get("details")
+        # Fetch current values for fields not provided
+        if title is None or details is None:
+            row = conn.execute("SELECT title, details FROM cards WHERE id = ?", (cid,)).fetchone()
+            if row:
+                title = title if title is not None else row["title"]
+                details = details if details is not None else row["details"]
+            else:
+                continue
+        if update_card(conn, cid, title, details, user_id):
+            changed = True
+
+    for card in updates.get("cards_to_delete", []):
+        if delete_card(conn, parse_id(card["card_id"]), user_id):
+            changed = True
+
+    for card in updates.get("cards_to_move", []):
+        col_id = col_by_title.get(card.get("column_title"))
+        if col_id:
+            if move_card(conn, parse_id(card["card_id"]), col_id, card["position"], user_id):
+                changed = True
+
+    return changed
 
 
 @app.post("/api/login")

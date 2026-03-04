@@ -178,20 +178,20 @@ Tests and success criteria:
 
 Extend the AI endpoint to accept user questions with board context and return structured responses that can optionally modify the board.
 
-- [ ] Define the structured output schema: `{ message: string, board_updates?: { cards_to_create?, cards_to_update?, cards_to_delete?, cards_to_move? } }`
-- [ ] Add POST /api/ai/chat endpoint:
+- [x] Define the structured output schema: `{ message: string, board_updates?: { cards_to_create?, cards_to_update?, cards_to_delete?, cards_to_move? } }`
+- [x] Add POST /api/ai/chat endpoint:
   - Accepts `{ message: string, history: [{role, content}] }`
   - Sends to AI: system prompt with board JSON + user message + history
   - Parses structured output
   - If board_updates present, applies them to the database
   - Returns the AI message + whether the board was updated
-- [ ] System prompt instructs the AI on the board structure and available actions
+- [x] System prompt instructs the AI on the board structure and available actions
 
 Tests and success criteria:
-- [ ] Backend unit tests with mocked AI: verify board context is sent, structured output is parsed, board updates are applied
-- [ ] Test: AI response without board updates returns message only
-- [ ] Test: AI response with card creation actually creates the card in the DB
-- [ ] Test: malformed AI output is handled gracefully
+- [x] Backend unit tests with mocked AI: verify board context is sent, structured output is parsed, board updates are applied
+- [x] Test: AI response without board updates returns message only
+- [x] Test: AI response with card creation actually creates the card in the DB
+- [x] Test: malformed AI output is handled gracefully
 
 ---
 
