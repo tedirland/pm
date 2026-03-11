@@ -3,12 +3,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { KanbanBoard } from "@/components/KanbanBoard";
 import { LoginForm } from "@/components/LoginForm";
+import { BoardSelector } from "@/components/BoardSelector";
 
 type AuthState = "loading" | "logged-out" | "logged-in";
 
 export default function Home() {
   const [auth, setAuth] = useState<AuthState>("loading");
   const [username, setUsername] = useState("");
+  const [selectedBoardId, setSelectedBoardId] = useState<number | null>(null);
 
   useEffect(() => {
     fetch("/api/me")
@@ -27,6 +29,7 @@ export default function Home() {
     await fetch("/api/logout", { method: "POST" });
     setAuth("logged-out");
     setUsername("");
+    setSelectedBoardId(null);
   }, []);
 
   if (auth === "loading") {
@@ -48,5 +51,22 @@ export default function Home() {
     );
   }
 
-  return <KanbanBoard username={username} onLogout={handleLogout} />;
+  if (selectedBoardId === null) {
+    return (
+      <BoardSelector
+        username={username}
+        onSelectBoard={setSelectedBoardId}
+        onLogout={handleLogout}
+      />
+    );
+  }
+
+  return (
+    <KanbanBoard
+      username={username}
+      boardId={selectedBoardId}
+      onLogout={handleLogout}
+      onBackToBoards={() => setSelectedBoardId(null)}
+    />
+  );
 }

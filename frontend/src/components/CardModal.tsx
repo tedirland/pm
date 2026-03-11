@@ -1,13 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { LabelPicker, LABEL_COLORS } from "@/components/LabelPicker";
 
 type CardModalProps = {
   mode: "create" | "edit";
   columnName?: string;
   initialTitle?: string;
   initialDetails?: string;
-  onSubmit: (title: string, details: string) => void;
+  initialDueDate?: string | null;
+  initialLabels?: string;
+  onSubmit: (title: string, details: string, dueDate: string | null, labels: string | undefined) => void;
   onClose: () => void;
 };
 
@@ -16,11 +19,15 @@ export const CardModal = ({
   columnName,
   initialTitle = "",
   initialDetails = "",
+  initialDueDate = null,
+  initialLabels = "",
   onSubmit,
   onClose,
 }: CardModalProps) => {
   const [title, setTitle] = useState(initialTitle);
   const [details, setDetails] = useState(initialDetails);
+  const [dueDate, setDueDate] = useState(initialDueDate || "");
+  const [labels, setLabels] = useState(initialLabels || "");
   const overlayRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
 
@@ -39,7 +46,7 @@ export const CardModal = ({
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!title.trim()) return;
-    onSubmit(title.trim(), details.trim());
+    onSubmit(title.trim(), details.trim(), dueDate || null, labels || undefined);
   };
 
   const handleOverlayClick = (e: React.MouseEvent) => {
@@ -95,6 +102,27 @@ export const CardModal = ({
               className="mt-1 w-full resize-none rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm text-[var(--gray-text)] outline-none transition focus:border-[var(--primary-blue)]"
             />
           </div>
+          <div>
+            <label
+              htmlFor="card-due-date"
+              className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--gray-text)]"
+            >
+              Due Date
+            </label>
+            <input
+              id="card-due-date"
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+              className="mt-1 w-full rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)]"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--gray-text)]">
+              Labels
+            </label>
+            <LabelPicker value={labels} onChange={setLabels} />
+          </div>
           <div className="flex items-center gap-2 pt-1">
             <button
               type="submit"
@@ -115,3 +143,5 @@ export const CardModal = ({
     </div>
   );
 };
+
+export { LABEL_COLORS };

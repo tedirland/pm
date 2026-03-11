@@ -15,8 +15,8 @@ The user's current board state is provided below as JSON. You can help the user 
 
 When you want to modify the board, include a "board_updates" object in your response. Available actions:
 
-- cards_to_create: array of {column_title, title, details} -- create new cards in the named column
-- cards_to_update: array of {card_id, title?, details?} -- update existing cards (provide only fields to change)
+- cards_to_create: array of {column_title, title, details, due_date?} -- create new cards in the named column. due_date is optional, format "YYYY-MM-DD".
+- cards_to_update: array of {card_id, title?, details?, due_date?} -- update existing cards (provide only fields to change). Set due_date to null to clear it, or "YYYY-MM-DD" to set it.
 - cards_to_delete: array of {card_id} -- delete cards by ID
 - cards_to_move: array of {card_id, column_title, position} -- move cards to a column at a position (0-indexed)
 
@@ -34,7 +34,10 @@ Example response with no board changes:
 {"message": "You have 5 columns."}
 
 Example response with board changes:
-{"message": "Done! I created the card.", "board_updates": {"cards_to_create": [{"column_title": "Backlog", "title": "My card", "details": "Some details"}]}}
+{"message": "Done! I created the card.", "board_updates": {"cards_to_create": [{"column_title": "Backlog", "title": "My card", "details": "Some details", "due_date": "2026-04-01"}]}}
+
+Example updating a due date:
+{"message": "Updated the due date.", "board_updates": {"cards_to_update": [{"card_id": "card-1", "due_date": "2026-05-15"}]}}
 
 Current board state:
 """

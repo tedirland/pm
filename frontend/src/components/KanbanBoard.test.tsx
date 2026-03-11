@@ -5,6 +5,8 @@ import { KanbanBoard } from "@/components/KanbanBoard";
 import type { BoardData } from "@/lib/kanban";
 
 const mockBoard: BoardData = {
+  id: 1,
+  title: "Test Board",
   columns: [
     { id: "col-1", title: "Backlog", cardIds: ["card-10", "card-11"] },
     { id: "col-2", title: "Discovery", cardIds: ["card-12"] },
@@ -21,6 +23,10 @@ const mockBoard: BoardData = {
 
 vi.mock("@/lib/api", () => ({
   fetchBoard: vi.fn(),
+  fetchBoardById: vi.fn(),
+  updateBoardTitle: vi.fn(),
+  addColumn: vi.fn(),
+  deleteColumn: vi.fn(),
   renameColumn: vi.fn(),
   createCard: vi.fn(),
   updateCard: vi.fn(),
@@ -32,6 +38,7 @@ vi.mock("@/lib/api", () => ({
 import * as api from "@/lib/api";
 
 const mockFetchBoard = vi.mocked(api.fetchBoard);
+const mockFetchBoardById = vi.mocked(api.fetchBoardById);
 const mockRenameColumn = vi.mocked(api.renameColumn);
 const mockCreateCard = vi.mocked(api.createCard);
 const mockUpdateCard = vi.mocked(api.updateCard);
@@ -40,6 +47,7 @@ const mockDeleteCard = vi.mocked(api.deleteCard);
 beforeEach(() => {
   vi.clearAllMocks();
   mockFetchBoard.mockResolvedValue(structuredClone(mockBoard));
+  mockFetchBoardById.mockResolvedValue(structuredClone(mockBoard));
   mockRenameColumn.mockResolvedValue(undefined);
   mockCreateCard.mockResolvedValue({ id: "card-99", title: "Test card", details: "Notes" });
   mockUpdateCard.mockResolvedValue(undefined);
@@ -56,6 +64,14 @@ describe("KanbanBoard", () => {
       expect(screen.getAllByTestId(/column-/i)).toHaveLength(5);
     });
     expect(mockFetchBoard).toHaveBeenCalledOnce();
+  });
+
+  it("uses fetchBoardById when boardId is provided", async () => {
+    render(<KanbanBoard boardId={1} />);
+    await waitFor(() => {
+      expect(screen.getAllByTestId(/column-/i)).toHaveLength(5);
+    });
+    expect(mockFetchBoardById).toHaveBeenCalledWith(1);
   });
 
   it("shows error when API fails", async () => {
@@ -76,7 +92,6 @@ describe("KanbanBoard", () => {
     await user.clear(input);
     await user.type(input, "Todo");
     expect(input).toHaveValue("Todo");
-    // Wait for debounce (500ms)
     await vi.advanceTimersByTimeAsync(500);
     expect(mockRenameColumn).toHaveBeenCalled();
     vi.useRealTimers();
@@ -94,7 +109,7 @@ describe("KanbanBoard", () => {
     await userEvent.click(within(modal).getByRole("button", { name: /add card/i }));
 
     await waitFor(() => {
-      expect(mockCreateCard).toHaveBeenCalledWith("col-1", "Test card", "Notes");
+      expect(mockCreateCard).toHaveBeenCalledWith("col-1", "Test card", "Notes", null, undefined);
     });
     expect(within(column).getByText("Test card")).toBeInTheDocument();
   });
@@ -115,7 +130,7 @@ describe("KanbanBoard", () => {
     await userEvent.click(confirmButton);
 
     await waitFor(() => {
-      expect(mockDeleteCard).toHaveBeenCalledWith("card-10");
+      expect(mockDeleteCard).toHaveBeenCalledWith("card-10", undefined);
     });
     expect(within(column).queryByText("Align roadmap themes")).not.toBeInTheDocument();
   });
@@ -134,7 +149,7 @@ describe("KanbanBoard", () => {
     await userEvent.click(screen.getByRole("button", { name: /save/i }));
 
     await waitFor(() => {
-      expect(mockUpdateCard).toHaveBeenCalledWith("card-10", "Updated title", "Draft quarterly themes.");
+      expect(mockUpdateCard).toHaveBeenCalledWith("card-10", "Updated title", "Draft quarterly themes.", null, undefined, undefined);
     });
     expect(within(column).getByText("Updated title")).toBeInTheDocument();
   });

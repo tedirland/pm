@@ -7,6 +7,7 @@ type LoginFormProps = {
 };
 
 export const LoginForm = ({ onLogin }: LoginFormProps) => {
+  const [mode, setMode] = useState<"login" | "register">("login");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -17,8 +18,10 @@ export const LoginForm = ({ onLogin }: LoginFormProps) => {
     setError("");
     setLoading(true);
 
+    const endpoint = mode === "login" ? "/api/login" : "/api/register";
+
     try {
-      const resp = await fetch("/api/login", {
+      const resp = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
@@ -26,7 +29,7 @@ export const LoginForm = ({ onLogin }: LoginFormProps) => {
 
       if (!resp.ok) {
         const data = await resp.json();
-        setError(data.error || "Login failed");
+        setError(data.detail || data.error || `${mode === "login" ? "Login" : "Registration"} failed`);
         return;
       }
 
@@ -47,7 +50,7 @@ export const LoginForm = ({ onLogin }: LoginFormProps) => {
 
         <div className="relative rounded-3xl border border-[var(--stroke)] bg-white p-8 shadow-[var(--shadow)]">
           <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[var(--gray-text)]">
-            Sign in
+            {mode === "login" ? "Sign in" : "Create account"}
           </p>
           <h1 className="mt-2 font-display text-2xl font-semibold text-[var(--navy-dark)]">
             Kanban Studio
@@ -68,7 +71,7 @@ export const LoginForm = ({ onLogin }: LoginFormProps) => {
                 id="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="user"
+                placeholder={mode === "login" ? "user" : "Choose a username"}
                 className="mt-1 w-full rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm font-medium text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)] placeholder:text-[var(--gray-text)]/40"
                 required
               />
@@ -85,7 +88,7 @@ export const LoginForm = ({ onLogin }: LoginFormProps) => {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="password"
+                placeholder={mode === "login" ? "password" : "Min 8 characters"}
                 className="mt-1 w-full rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm font-medium text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)] placeholder:text-[var(--gray-text)]/40"
                 required
               />
@@ -102,9 +105,30 @@ export const LoginForm = ({ onLogin }: LoginFormProps) => {
               disabled={loading}
               className="w-full rounded-full bg-[var(--secondary-purple)] px-5 py-2.5 text-xs font-semibold uppercase tracking-wide text-white transition hover:brightness-110 disabled:opacity-60"
             >
-              {loading ? "Signing in..." : "Sign in"}
+              {loading
+                ? mode === "login"
+                  ? "Signing in..."
+                  : "Creating account..."
+                : mode === "login"
+                  ? "Sign in"
+                  : "Create account"}
             </button>
           </form>
+
+          <div className="mt-4 text-center">
+            <button
+              type="button"
+              onClick={() => {
+                setMode(mode === "login" ? "register" : "login");
+                setError("");
+              }}
+              className="text-xs font-medium text-[var(--primary-blue)] hover:underline"
+            >
+              {mode === "login"
+                ? "Need an account? Register"
+                : "Already have an account? Sign in"}
+            </button>
+          </div>
         </div>
       </div>
     </div>

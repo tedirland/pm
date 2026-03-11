@@ -2,6 +2,8 @@ export type Card = {
   id: string;
   title: string;
   details: string;
+  due_date?: string | null;
+  labels?: string;
 };
 
 export type Column = {
@@ -11,8 +13,18 @@ export type Column = {
 };
 
 export type BoardData = {
+  id?: number;
+  title?: string;
   columns: Column[];
   cards: Record<string, Card>;
+};
+
+export type BoardSummary = {
+  id: number;
+  title: string;
+  created_at: string;
+  column_count?: number;
+  card_count?: number;
 };
 
 const isColumnId = (columns: Column[], id: string) =>

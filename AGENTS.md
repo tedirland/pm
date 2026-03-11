@@ -1,53 +1,116 @@
-# The Project Management MVP web app
+# CLAUDE.md
 
-## Business Requirements
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-This project is building a Project Management App. Key features:
-- A user can sign in
-- When signed in, the user sees a Kanban board representing their project
-- The Kanban board has fixed columns that can be renamed
-- The cards on the Kanban board can be moved with drag and drop, and edited
-- There is an AI chat feature in a sidebar; the AI is able to create / edit / move one or more cards
+## Project Overview
 
-## Limitations
+Kanban Studio - a Project Management app with AI-powered card management. Users register/sign in, manage multiple Kanban boards, drag-drop cards between columns, and chat with an AI that can create/edit/move cards.
 
-For the MVP, there will only be a user sign in (hardcoded to 'user' and 'password') but the database will support multiple users for future.
+## Tech Stack
 
-For the MVP, there will only be 1 Kanban board per signed in user.
+- **Frontend:** Next.js 16 with React 19, Tailwind CSS 4, @dnd-kit for drag-drop
+- **Backend:** Python FastAPI with SQLite (raw SQL, no ORM)
+- **AI:** OpenRouter API using `openai/gpt-oss-120b` model
+- **Deployment:** Docker container with frontend static export served by FastAPI
 
-For the MVP, this will run locally (in a docker container)
+## Commands
 
-## Technical Decisions
+### Frontend (from `frontend/`)
+```bash
+npm run dev           # Dev server at :3000
+npm run build         # Static export to ./out
+npm run lint          # ESLint
+npm run test:unit     # Vitest unit tests
+npm run test:e2e      # Playwright e2e tests
+npm run test:all      # All tests
+```
 
-- NextJS frontend
-- Python FastAPI backend, including serving the static NextJS site at /
-- Everything packaged into a Docker container
-- Use "uv" as the package manager for python in the Docker container
-- Use OpenRouter for the AI calls. An OPENROUTER_API_KEY is in .env in the project root
-- Use `openai/gpt-oss-120b` as the model
-- Use SQLLite local database for the database, creating a new db if it doesn't exist
-- Start and Stop server scripts for Mac, PC, Linux in scripts/
+### Backend (from `backend/`)
+```bash
+uv sync               # Install dependencies
+pytest                # Run tests
+pytest tests/test_main.py::test_name  # Single test
+```
 
-## Starting Point
+### Docker
+```bash
+./scripts/start.sh    # Build and run on port 8000
+./scripts/stop.sh     # Stop container
+```
 
-A working MVP of the frontend has been built and is already in frontend. This is not yet designed for the Docker setup. It's a pure frontend-only demo.
+## Architecture
+
+```
+frontend/
+  src/app/           # Next.js routes (page.tsx entry point)
+  src/components/    # React components (KanbanBoard, BoardSelector, ChatSidebar, CardModal, etc.)
+  src/lib/           # API client (api.ts), Kanban logic (kanban.ts)
+
+backend/
+  app/main.py        # FastAPI app factory, lifespan, static file mounts
+  app/models.py      # Pydantic request/response models
+  app/auth.py        # Password hashing (PBKDF2), session token generation
+  app/dependencies.py # FastAPI dependencies (get_db, get_current_user_id)
+  app/database.py    # SQLite schema and CRUD operations
+  app/ai.py          # OpenRouter AI integration, response parsing
+  app/routers/
+    auth.py          # /api/login, /api/logout, /api/me, /api/register
+    boards.py        # /api/boards CRUD + legacy /api/board
+    cards.py         # /api/board/cards + /api/boards/{id}/cards
+    columns.py       # /api/board/columns + /api/boards/{id}/columns
+    ai.py            # /api/ai/chat, /api/ai/test + board-scoped AI
+```
+
+## Key Implementation Details
+
+**ID Prefixing:** Column IDs use "col-" prefix, card IDs use "card-" prefix. The `parse_id()` function strips prefixes for DB queries. This prevents dnd-kit from confusing columns and cards.
+
+**Auth:** Session-based authentication with PBKDF2 password hashing (stdlib, no extra deps). Sessions stored in DB with 30-day expiry. User registration with username validation (3-30 chars, alphanumeric/underscore) and min 8-char password. Legacy users with empty password_hash support "password" as credential.
+
+**Database:** SQLite at `/app/data/kanban.db`. Schema: users, sessions, boards, columns, cards, labels. Multi-board per user. 5 default columns + 8 sample cards seeded on board creation. Cards support due_date and labels (comma-separated string) fields.
+
+**Multi-Board:** Users can create/manage multiple boards. API supports both legacy single-board endpoints (`/api/board/*`) and new board-scoped endpoints (`/api/boards/{id}/*`). Frontend shows BoardSelector when no board is active.
+
+**Frontend API Client:** `frontend/src/lib/api.ts` - all API calls use relative paths (no base URL needed since FastAPI serves everything).
+
+**Optimistic Updates:** `KanbanBoard.tsx` updates local state immediately, then calls the API. On error it calls `loadBoard()` to re-sync from server.
+
+**Labels:** Cards support comma-separated labels (e.g. "bug,feature,urgent"). Preset labels have color-coded badges (LabelPicker component). Custom labels also supported. Labels displayed on cards via CardLabels component.
+
+**Search:** SearchBar in the board header filters cards across all columns by title, details, or labels text. Client-side filtering only.
+
+**Board Title Editing:** Click the board title in the header to edit it inline. Saves via PUT /api/boards/{id}.
+
+**AI Chat:** Board state sent as JSON context. AI returns `{"message": string, "board_updates": {...}}`. `_apply_board_updates()` in routers/ai.py resolves column titles to IDs so AI can reference columns by name. `parse_ai_response()` handles edge cases: unwraps nested responses (model sometimes wraps in `{"final":{...}}`), returns fallback message on empty `{}`.
+
+**AI Conversation History:** Kept in React state (ChatSidebar), lost on refresh. `FormattedMessage` sub-component renders lightweight markdown (bold, italic, bullet lists).
+
+**Static Export:** Frontend builds to `out/`, served by FastAPI StaticFiles mount at root path.
+
+**Docker Rebuild:** Use `--no-cache` if frontend changes aren't appearing. Browser hard refresh (Cmd+Shift+R) may also be needed.
+
+## Environment
+
+- `OPENROUTER_API_KEY` in `.env` (required for AI features)
+- `DB_PATH` defaults to `/app/data/kanban.db`
 
 ## Color Scheme
 
-- Accent Yellow: `#ecad0a` - accent lines, highlights
-- Blue Primary: `#209dd7` - links, key sections
-- Purple Secondary: `#753991` - submit buttons, important actions
-- Dark Navy: `#032147` - main headings
-- Gray Text: `#888888` - supporting text, labels
+- Accent Yellow: `#ecad0a`
+- Blue Primary: `#209dd7`
+- Purple Secondary: `#753991`
+- Dark Navy: `#032147`
+- Gray Text: `#888888`
 
-## Coding standards
+## Test Counts
 
-1. Use latest versions of libraries and idiomatic approaches as of today
-2. Keep it simple - NEVER over-engineer, ALWAYS simplify, NO unnecessary defensive programming. No extra features - focus on simplicity.
-3. Be concise. Keep README minimal. IMPORTANT: no emojis ever
-4. When hitting issues, always identify root cause before trying a fix. Do not guess. Prove with evidence, then fix the root cause.
+- Backend: 88 pytest tests (auth, boards, cards, columns, labels, due dates, AI, multi-board)
+- Frontend unit: 37 vitest tests (KanbanBoard, ChatSidebar, LoginForm, BoardSelector, SearchBar, CardLabels)
+- E2E: 5 playwright tests
 
-## Working documentation
+## Coding Standards
 
-All documents for planning and executing this project will be in the docs/ directory.
-Please review the docs/PLAN.md document before proceeding.
+1. Use latest library versions and idiomatic approaches
+2. Keep it simple - never over-engineer
+3. Be concise - minimal documentation, no emojis
+4. Always identify root cause before fixing (prove with evidence)

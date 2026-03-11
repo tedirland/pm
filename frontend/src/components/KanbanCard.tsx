@@ -1,8 +1,41 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import clsx from "clsx";
 import type { Card } from "@/lib/kanban";
+import { CardLabels } from "@/components/CardLabels";
+
+function DueDateBadge({ date }: { date: string }) {
+  const { label, isOverdue, isSoon } = useMemo(() => {
+    const d = new Date(date + "T00:00:00");
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const diff = d.getTime() - today.getTime();
+    const daysUntil = Math.ceil(diff / (1000 * 60 * 60 * 24));
+    return {
+      label: d.toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+      isOverdue: daysUntil < 0,
+      isSoon: daysUntil >= 0 && daysUntil <= 2,
+    };
+  }, [date]);
+
+  return (
+    <p
+      className={clsx(
+        "mt-1.5 flex items-center gap-1 text-[10px] font-semibold",
+        isOverdue && "text-red-500",
+        isSoon && !isOverdue && "text-amber-500",
+        !isOverdue && !isSoon && "text-[var(--gray-text)]"
+      )}
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-3 w-3">
+        <path fillRule="evenodd" d="M4 1.75a.75.75 0 01.75.75V3h6.5V2.5a.75.75 0 011.5 0V3h.25A2.75 2.75 0 0115.75 5.75v6.5A2.75 2.75 0 0113 15H3A2.75 2.75 0 01.25 12.25v-6.5A2.75 2.75 0 013 3h.25V2.5A.75.75 0 014 1.75zM1.75 7.5v4.75c0 .69.56 1.25 1.25 1.25h10c.69 0 1.25-.56 1.25-1.25V7.5H1.75z" clipRule="evenodd" />
+      </svg>
+      {label}
+      {isOverdue && " (overdue)"}
+    </p>
+  );
+}
 
 type KanbanCardProps = {
   card: Card;
@@ -25,7 +58,7 @@ export const KanbanCard = ({ card, onEdit, onDelete }: KanbanCardProps) => {
       ref={setNodeRef}
       style={style}
       className={clsx(
-        "rounded-2xl border border-transparent bg-white px-4 py-4 shadow-[0_12px_24px_rgba(3,33,71,0.08)]",
+        "rounded-xl border border-transparent bg-white px-3.5 py-3 shadow-[0_4px_16px_rgba(3,33,71,0.07)]",
         "transition-all duration-150",
         isDragging && "opacity-60 shadow-[0_18px_32px_rgba(3,33,71,0.16)]"
       )}
@@ -33,16 +66,18 @@ export const KanbanCard = ({ card, onEdit, onDelete }: KanbanCardProps) => {
       {...listeners}
       data-testid={`card-${card.id}`}
     >
+      {card.labels && <CardLabels labels={card.labels} />}
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <h4 className="font-display text-base font-semibold text-[var(--navy-dark)]">
+        <div className="min-w-0 flex-1">
+          <h4 className="font-display text-sm font-semibold text-[var(--navy-dark)]">
             {card.title}
           </h4>
           {card.details && (
-            <p className="mt-2 text-sm leading-6 text-[var(--gray-text)]">
+            <p className="mt-1 line-clamp-2 text-xs leading-5 text-[var(--gray-text)]">
               {card.details}
             </p>
           )}
+          {card.due_date && <DueDateBadge date={card.due_date} />}
         </div>
         <div
           className="flex shrink-0 gap-1"
