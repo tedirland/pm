@@ -84,7 +84,6 @@ def init_db(conn: sqlite3.Connection) -> None:
 # --- User operations ---
 
 def create_user(conn: sqlite3.Connection, username: str, password_hash: str) -> int:
-    """Create a new user. Returns user_id."""
     cur = conn.execute(
         "INSERT INTO users (username, password_hash) VALUES (?, ?)",
         (username, password_hash),
@@ -94,7 +93,6 @@ def create_user(conn: sqlite3.Connection, username: str, password_hash: str) -> 
 
 
 def get_user_by_username(conn: sqlite3.Connection, username: str) -> dict | None:
-    """Get user by username. Returns dict with id, username, password_hash."""
     row = conn.execute(
         "SELECT id, username, password_hash FROM users WHERE username = ?",
         (username,),
@@ -105,7 +103,7 @@ def get_user_by_username(conn: sqlite3.Connection, username: str) -> dict | None
 
 
 def ensure_user(conn: sqlite3.Connection, username: str) -> int:
-    """Get or create a user (legacy support). Returns user_id."""
+    """Get or create a user (legacy support)."""
     row = conn.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
     if row:
         return row["id"]
@@ -117,7 +115,6 @@ def ensure_user(conn: sqlite3.Connection, username: str) -> int:
 # --- Session operations ---
 
 def create_session(conn: sqlite3.Connection, user_id: int, token: str) -> None:
-    """Create a new session for a user."""
     expires = datetime.now(timezone.utc) + timedelta(days=SESSION_EXPIRY_DAYS)
     conn.execute(
         "INSERT INTO sessions (user_id, token, expires_at) VALUES (?, ?, ?)",
@@ -127,14 +124,13 @@ def create_session(conn: sqlite3.Connection, user_id: int, token: str) -> None:
 
 
 def get_session_user(conn: sqlite3.Connection, token: str) -> int | None:
-    """Validate a session token and return user_id, or None if invalid/expired."""
+    """Validate a session token. Returns user_id or None if invalid/expired."""
     row = conn.execute(
         "SELECT user_id, expires_at FROM sessions WHERE token = ?",
         (token,),
     ).fetchone()
     if not row:
         return None
-    # Check expiry
     try:
         expires = datetime.fromisoformat(row["expires_at"])
         if expires.tzinfo is None:
@@ -149,13 +145,11 @@ def get_session_user(conn: sqlite3.Connection, token: str) -> int | None:
 
 
 def delete_session(conn: sqlite3.Connection, token: str) -> None:
-    """Delete a session (logout)."""
     conn.execute("DELETE FROM sessions WHERE token = ?", (token,))
     conn.commit()
 
 
 def delete_user_sessions(conn: sqlite3.Connection, user_id: int) -> None:
-    """Delete all sessions for a user."""
     conn.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
     conn.commit()
 
@@ -163,7 +157,6 @@ def delete_user_sessions(conn: sqlite3.Connection, user_id: int) -> None:
 # --- Board operations ---
 
 def create_board(conn: sqlite3.Connection, user_id: int, title: str = "My Board", seed: bool = True) -> int:
-    """Create a new board for a user. Returns board_id."""
     cur = conn.execute(
         "INSERT INTO boards (user_id, title) VALUES (?, ?)",
         (user_id, title),
@@ -176,7 +169,6 @@ def create_board(conn: sqlite3.Connection, user_id: int, title: str = "My Board"
 
 
 def _seed_board(conn: sqlite3.Connection, board_id: int) -> None:
-    """Add default columns and sample cards to a board."""
     for position, title in SEED_COLUMNS:
         conn.execute(
             "INSERT INTO columns (board_id, title, position) VALUES (?, ?, ?)",
@@ -194,7 +186,7 @@ def _seed_board(conn: sqlite3.Connection, board_id: int) -> None:
 
 
 def ensure_board(conn: sqlite3.Connection, user_id: int) -> int:
-    """Get or create a board (legacy support). Returns board_id."""
+    """Get or create a board (legacy support)."""
     row = conn.execute("SELECT id FROM boards WHERE user_id = ?", (user_id,)).fetchone()
     if row:
         return row["id"]
@@ -202,7 +194,6 @@ def ensure_board(conn: sqlite3.Connection, user_id: int) -> int:
 
 
 def get_boards(conn: sqlite3.Connection, user_id: int) -> list[dict]:
-    """List all boards for a user, including column and card counts."""
     rows = conn.execute(
         """SELECT b.id, b.title, b.created_at,
                   (SELECT COUNT(*) FROM columns c WHERE c.board_id = b.id) as column_count,
@@ -218,7 +209,6 @@ def get_boards(conn: sqlite3.Connection, user_id: int) -> list[dict]:
 
 
 def get_board(conn: sqlite3.Connection, board_id: int, user_id: int) -> dict | None:
-    """Get a board with its columns and cards. Returns None if not found or not owned by user."""
     board = conn.execute(
         "SELECT id, title FROM boards WHERE id = ? AND user_id = ?",
         (board_id, user_id),
@@ -229,13 +219,12 @@ def get_board(conn: sqlite3.Connection, board_id: int, user_id: int) -> dict | N
 
 
 def get_board_by_user(conn: sqlite3.Connection, user_id: int) -> dict:
-    """Get the first board for a user (legacy compat). Creates one if none exist."""
+    """Get the first board for a user (legacy compat)."""
     board_id = ensure_board(conn, user_id)
     return _load_board_data(conn, board_id)
 
 
 def _load_board_data(conn: sqlite3.Connection, board_id: int) -> dict:
-    """Load board data with columns and cards."""
     board_row = conn.execute("SELECT id, title FROM boards WHERE id = ?", (board_id,)).fetchone()
     cols = conn.execute(
         "SELECT id, title, position FROM columns WHERE board_id = ? ORDER BY position",
@@ -264,7 +253,6 @@ def _load_board_data(conn: sqlite3.Connection, board_id: int) -> dict:
 
 
 def update_board(conn: sqlite3.Connection, board_id: int, title: str, user_id: int) -> bool:
-    """Update board title. Returns True if successful."""
     row = conn.execute(
         "SELECT id FROM boards WHERE id = ? AND user_id = ?",
         (board_id, user_id),
@@ -277,7 +265,6 @@ def update_board(conn: sqlite3.Connection, board_id: int, title: str, user_id: i
 
 
 def delete_board(conn: sqlite3.Connection, board_id: int, user_id: int) -> bool:
-    """Delete a board. Returns True if successful."""
     row = conn.execute(
         "SELECT id FROM boards WHERE id = ? AND user_id = ?",
         (board_id, user_id),
@@ -292,7 +279,6 @@ def delete_board(conn: sqlite3.Connection, board_id: int, user_id: int) -> bool:
 # --- Column operations ---
 
 def add_column(conn: sqlite3.Connection, board_id: int, title: str, user_id: int) -> dict | None:
-    """Add a column at the end of a board. Returns {"id": "col-X", "title": ...} or None if board not owned."""
     row = conn.execute(
         "SELECT id FROM boards WHERE id = ? AND user_id = ?",
         (board_id, user_id),
@@ -312,7 +298,6 @@ def add_column(conn: sqlite3.Connection, board_id: int, title: str, user_id: int
 
 
 def delete_column(conn: sqlite3.Connection, column_id: int, user_id: int) -> bool:
-    """Delete a column and its cards. Reorders remaining columns. Returns True if successful."""
     row = conn.execute(
         "SELECT c.id, c.board_id, c.position FROM columns c JOIN boards b ON c.board_id = b.id WHERE c.id = ? AND b.user_id = ?",
         (column_id, user_id),
@@ -428,7 +413,6 @@ def move_card(conn: sqlite3.Connection, card_id: int, target_column_id: int, tar
 # --- Label operations ---
 
 def create_label(conn: sqlite3.Connection, board_id: int, name: str, color: str, user_id: int) -> dict | None:
-    """Create a label for a board. Returns label dict or None if board not owned."""
     row = conn.execute(
         "SELECT id FROM boards WHERE id = ? AND user_id = ?",
         (board_id, user_id),
@@ -444,7 +428,6 @@ def create_label(conn: sqlite3.Connection, board_id: int, name: str, color: str,
 
 
 def get_labels(conn: sqlite3.Connection, board_id: int, user_id: int) -> list[dict] | None:
-    """Get labels for a board. Returns None if board not owned."""
     row = conn.execute(
         "SELECT id FROM boards WHERE id = ? AND user_id = ?",
         (board_id, user_id),
@@ -459,7 +442,6 @@ def get_labels(conn: sqlite3.Connection, board_id: int, user_id: int) -> list[di
 
 
 def delete_label(conn: sqlite3.Connection, label_id: int, user_id: int) -> bool:
-    """Delete a label. Returns True if successful."""
     row = conn.execute(
         "SELECT l.id FROM labels l JOIN boards b ON l.board_id = b.id WHERE l.id = ? AND b.user_id = ?",
         (label_id, user_id),

@@ -28,8 +28,8 @@ export const KanbanColumn = ({
   const [localTitle, setLocalTitle] = useState(column.title);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Sync local state when column.title changes from external source (e.g., API refresh)
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sync local title when prop changes from API refresh
     setLocalTitle(column.title);
   }, [column.title]);
 
@@ -43,7 +43,6 @@ export const KanbanColumn = ({
     }, 500);
   };
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (debounceRef.current) {

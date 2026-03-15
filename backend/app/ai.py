@@ -49,7 +49,6 @@ def get_ai_client() -> OpenAI:
 
 
 def ai_test() -> str:
-    """Send a simple test prompt and return the AI response text."""
     client = get_ai_client()
     response = client.chat.completions.create(
         model=MODEL,
@@ -59,28 +58,24 @@ def ai_test() -> str:
 
 
 def _truncate_board_for_ai(board_json: dict) -> tuple[dict, bool]:
-    """Truncate board to MAX_CARDS_FOR_AI cards if needed. Returns (board, was_truncated)."""
     cards = board_json.get("cards", {})
     if len(cards) <= MAX_CARDS_FOR_AI:
         return board_json, False
 
-    # Keep only first MAX_CARDS_FOR_AI cards and update column cardIds accordingly
     truncated_cards = dict(list(cards.items())[:MAX_CARDS_FOR_AI])
-    truncated_card_ids = set(truncated_cards.keys())
+    kept_ids = set(truncated_cards.keys())
 
-    truncated_columns = []
-    for col in board_json.get("columns", []):
-        new_card_ids = [cid for cid in col.get("cardIds", []) if cid in truncated_card_ids]
-        truncated_columns.append({**col, "cardIds": new_card_ids})
+    truncated_columns = [
+        {**col, "cardIds": [cid for cid in col.get("cardIds", []) if cid in kept_ids]}
+        for col in board_json.get("columns", [])
+    ]
 
     return {"columns": truncated_columns, "cards": truncated_cards}, True
 
 
 def ai_chat(board_json: dict, message: str, history: list[dict]) -> dict:
-    """Send a chat message with board context and return parsed structured response."""
     client = get_ai_client()
 
-    # Truncate large boards to avoid token limits
     board_for_ai, was_truncated = _truncate_board_for_ai(board_json)
     board_str = json.dumps(board_for_ai, indent=2)
     if was_truncated:
@@ -103,7 +98,6 @@ def ai_chat(board_json: dict, message: str, history: list[dict]) -> dict:
 
 
 def parse_ai_response(raw: str) -> dict:
-    """Parse the AI response JSON, handling malformed output gracefully."""
     try:
         data = json.loads(raw)
     except json.JSONDecodeError:
@@ -113,7 +107,6 @@ def parse_ai_response(raw: str) -> dict:
         return {"message": str(data), "board_updates": None}
 
     # Some models wrap the response in an extra key (e.g. {"final": {...}}).
-    # Unwrap if "message" is missing but there's a single nested dict that has it.
     if "message" not in data:
         for v in data.values():
             if isinstance(v, dict) and "message" in v:
@@ -121,21 +114,14 @@ def parse_ai_response(raw: str) -> dict:
                 break
 
     if "message" not in data:
-        # Empty or unrecognized response
-        if not data:
-            return {"message": "I couldn't process that request. Please try again.", "board_updates": None}
-        return {"message": str(data), "board_updates": None}
+        fallback = "I couldn't process that request. Please try again." if not data else str(data)
+        return {"message": fallback, "board_updates": None}
 
-    result: dict = {"message": data["message"]}
-
+    update_keys = ("cards_to_create", "cards_to_update", "cards_to_delete", "cards_to_move")
     updates = data.get("board_updates")
+    board_updates = None
     if isinstance(updates, dict):
-        clean: dict = {}
-        for key in ("cards_to_create", "cards_to_update", "cards_to_delete", "cards_to_move"):
-            if key in updates and isinstance(updates[key], list) and len(updates[key]) > 0:
-                clean[key] = updates[key]
-        result["board_updates"] = clean if clean else None
-    else:
-        result["board_updates"] = None
+        clean = {k: updates[k] for k in update_keys if isinstance(updates.get(k), list) and updates[k]}
+        board_updates = clean or None
 
-    return result
+    return {"message": data["message"], "board_updates": board_updates}

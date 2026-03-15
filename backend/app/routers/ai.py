@@ -6,7 +6,6 @@ from app.ai import ai_chat, ai_test
 from app.database import (
     create_card,
     delete_card,
-    ensure_board,
     get_board,
     get_board_by_user,
     move_card,
@@ -14,14 +13,9 @@ from app.database import (
 )
 from app.dependencies import get_current_user_id, get_db
 from app.models import ChatRequest
+from app.utils import parse_id
 
 router = APIRouter(prefix="/api", tags=["ai"])
-
-
-def parse_id(prefixed_id: str) -> int:
-    """Strip 'col-' or 'card-' prefix and return the integer ID."""
-    parts = prefixed_id.split("-", 1)
-    return int(parts[1]) if len(parts) == 2 and parts[0] in ("col", "card") else int(prefixed_id)
 
 
 def _apply_board_updates(conn: sqlite3.Connection, updates: dict, user_id: int, board_id: int) -> bool:
@@ -66,6 +60,19 @@ def _apply_board_updates(conn: sqlite3.Connection, updates: dict, user_id: int, 
     return changed
 
 
+def _handle_chat(conn: sqlite3.Connection, board_data: dict, body: ChatRequest, user_id: int) -> dict:
+    """Run AI chat and apply any board updates. Returns the response payload."""
+    history = [{"role": m.role, "content": m.content} for m in body.history]
+    result = ai_chat(board_data, body.message, history)
+
+    board_changed = False
+    updates = result.get("board_updates")
+    if updates:
+        board_changed = _apply_board_updates(conn, updates, user_id, board_data["id"])
+
+    return {"message": result["message"], "board_updated": board_changed}
+
+
 @router.get("/ai/test")
 async def ai_test_endpoint(
     user_id: int = Depends(get_current_user_id),
@@ -85,16 +92,7 @@ async def ai_chat_endpoint(
 ):
     try:
         board_data = get_board_by_user(conn, user_id)
-        board_id = board_data["id"]
-        history = [{"role": m.role, "content": m.content} for m in body.history]
-        result = ai_chat(board_data, body.message, history)
-
-        board_changed = False
-        updates = result.get("board_updates")
-        if updates:
-            board_changed = _apply_board_updates(conn, updates, user_id, board_id)
-
-        return {"message": result["message"], "board_updated": board_changed}
+        return _handle_chat(conn, board_data, body, user_id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -110,14 +108,6 @@ async def ai_chat_board_endpoint(
     if not board_data:
         raise HTTPException(status_code=404, detail="Board not found")
     try:
-        history = [{"role": m.role, "content": m.content} for m in body.history]
-        result = ai_chat(board_data, body.message, history)
-
-        board_changed = False
-        updates = result.get("board_updates")
-        if updates:
-            board_changed = _apply_board_updates(conn, updates, user_id, board_id)
-
-        return {"message": result["message"], "board_updated": board_changed}
+        return _handle_chat(conn, board_data, body, user_id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

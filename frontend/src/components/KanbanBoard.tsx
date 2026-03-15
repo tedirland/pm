@@ -226,8 +226,7 @@ export const KanbanBoard = ({ username, boardId, onLogout, onBackToBoards }: Kan
     }
   };
 
-  // Filter cards by search query
-  const getFilteredCardIds = (cardIds: string[]) => {
+  const getFilteredCardIds = useCallback((cardIds: string[]) => {
     if (!searchQuery.trim()) return cardIds;
     const q = searchQuery.toLowerCase();
     return cardIds.filter((id) => {
@@ -239,7 +238,7 @@ export const KanbanBoard = ({ username, boardId, onLogout, onBackToBoards }: Kan
         (card.labels && card.labels.toLowerCase().includes(q))
       );
     });
-  };
+  }, [searchQuery, board?.cards]);
 
   if (loading) {
     return (
@@ -266,7 +265,6 @@ export const KanbanBoard = ({ username, boardId, onLogout, onBackToBoards }: Kan
       <div className="pointer-events-none absolute left-0 top-0 h-[420px] w-[420px] -translate-x-1/3 -translate-y-1/3 rounded-full bg-[radial-gradient(circle,_rgba(32,157,215,0.25)_0%,_rgba(32,157,215,0.05)_55%,_transparent_70%)]" />
       <div className="pointer-events-none absolute bottom-0 right-0 h-[520px] w-[520px] translate-x-1/4 translate-y-1/4 rounded-full bg-[radial-gradient(circle,_rgba(117,57,145,0.18)_0%,_rgba(117,57,145,0.05)_55%,_transparent_75%)]" />
 
-      {/* Header */}
       <header className="relative z-10 mx-5 mt-5 shrink-0 flex items-center justify-between rounded-2xl border border-[var(--stroke)] bg-white/80 px-5 py-2.5 shadow-[var(--shadow)] backdrop-blur">
         <div className="flex items-center gap-3">
           {onBackToBoards && (
@@ -357,9 +355,7 @@ export const KanbanBoard = ({ username, boardId, onLogout, onBackToBoards }: Kan
         </div>
       </header>
 
-      {/* Board + Chat layout */}
       <div className="relative flex min-h-0 flex-1 gap-5 overflow-hidden px-5 pb-5 pt-5">
-        {/* Board columns */}
         <DndContext
           sensors={sensors}
           collisionDetection={closestCorners}
@@ -406,7 +402,6 @@ export const KanbanBoard = ({ username, boardId, onLogout, onBackToBoards }: Kan
 
       </div>
 
-      {/* Floating chat window - outside layout flow */}
       {chatOpen && (
         <ChatPanel
           onClose={() => setChatOpen(false)}

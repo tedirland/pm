@@ -25,7 +25,7 @@ export const BoardSelector = ({ onSelectBoard, onLogout, username }: BoardSelect
     } finally {
       setLoading(false);
     }
-  }, [onSelectBoard]);
+  }, []);
 
   useEffect(() => {
     loadBoards();

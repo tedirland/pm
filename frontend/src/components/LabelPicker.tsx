@@ -22,6 +22,7 @@ type LabelPickerProps = {
 export const LabelPicker = ({ value, onChange }: LabelPickerProps) => {
   const [customLabel, setCustomLabel] = useState("");
   const selected = value ? value.split(",").map((s) => s.trim()).filter(Boolean) : [];
+  const customLabels = selected.filter((l) => !PRESET_LABELS.includes(l));
 
   const toggle = (label: string) => {
     const next = selected.includes(label)
@@ -61,9 +62,9 @@ export const LabelPicker = ({ value, onChange }: LabelPickerProps) => {
           );
         })}
       </div>
-      {selected.filter((l) => !PRESET_LABELS.includes(l)).length > 0 && (
+      {customLabels.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
-          {selected.filter((l) => !PRESET_LABELS.includes(l)).map((label) => (
+          {customLabels.map((label) => (
             <button
               key={label}
               type="button"

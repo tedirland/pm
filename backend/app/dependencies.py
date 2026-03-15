@@ -6,7 +6,6 @@ from app.database import get_connection, get_session_user
 
 
 def get_db() -> sqlite3.Connection:
-    """Yield a database connection, closing it when done."""
     conn = get_connection()
     try:
         yield conn
@@ -18,7 +17,6 @@ def get_current_user_id(
     session: str | None = Cookie(default=None),
     conn: sqlite3.Connection = Depends(get_db),
 ) -> int:
-    """Validate session cookie and return user_id. Raises 401 if invalid."""
     if not session:
         raise HTTPException(status_code=401, detail="Not authenticated")
     user_id = get_session_user(conn, session)

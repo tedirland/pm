@@ -108,13 +108,11 @@ export const ChatPanel = ({ onBoardUpdated, boardId, onClose }: ChatPanelProps) 
       <div className="chat-panel-enter fixed bottom-5 right-5 z-50 flex h-[520px] w-[400px] flex-col overflow-hidden rounded-2xl border border-white/[0.08] shadow-[0_25px_60px_rgba(3,33,71,0.35),0_8px_20px_rgba(0,0,0,0.2)]"
         style={{ background: "linear-gradient(165deg, #0a1628 0%, #0d1f3c 40%, #111827 100%)" }}
       >
-        {/* Ambient glow behind header */}
         <div
           className={`pointer-events-none absolute -top-20 left-1/2 h-40 w-60 -translate-x-1/2 rounded-full blur-3xl ${sending ? "glow-thinking" : "opacity-30"}`}
           style={{ background: "radial-gradient(circle, rgba(117,57,145,0.5) 0%, rgba(32,157,215,0.2) 60%, transparent 100%)" }}
         />
 
-        {/* Header */}
         <div className="relative z-10 flex items-center justify-between border-b border-white/[0.06] px-4 py-3">
           <div className="flex items-center gap-3">
             <div className="relative">
@@ -123,7 +121,6 @@ export const ChatPanel = ({ onBoardUpdated, boardId, onClose }: ChatPanelProps) 
                   <path d="M10 1a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 1zM5.05 3.05a.75.75 0 011.06 0l1.062 1.06A.75.75 0 116.11 5.173L5.05 4.11a.75.75 0 010-1.06zm9.9 0a.75.75 0 010 1.06l-1.06 1.062a.75.75 0 01-1.062-1.061l1.061-1.06a.75.75 0 011.06 0zM10 7a3 3 0 100 6 3 3 0 000-6zm-6.25 3a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5H3a.75.75 0 01.75.75zm14 0a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5H17a.75.75 0 01.75.75z" />
                 </svg>
               </div>
-              {/* Online indicator */}
               <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-[#0d1f3c] bg-emerald-400" />
             </div>
             <div>
@@ -145,7 +142,6 @@ export const ChatPanel = ({ onBoardUpdated, boardId, onClose }: ChatPanelProps) 
           </button>
         </div>
 
-        {/* Messages area */}
         <div className="chat-scrollbar relative flex-1 overflow-y-auto" data-testid="chat-messages">
           <div className="px-4 py-4">
             {history.length === 0 && <EmptyState />}
@@ -157,9 +153,7 @@ export const ChatPanel = ({ onBoardUpdated, boardId, onClose }: ChatPanelProps) 
           </div>
         </div>
 
-        {/* Input area */}
         <div className="relative z-10 border-t border-white/[0.06] p-3">
-          {/* Subtle gradient line above input */}
           <div className="pointer-events-none absolute left-4 right-4 top-0 h-px bg-gradient-to-r from-transparent via-[#753991]/20 to-transparent" />
 
           <form
@@ -204,7 +198,6 @@ export const ChatPanel = ({ onBoardUpdated, boardId, onClose }: ChatPanelProps) 
   );
 };
 
-/** Empty state shown before any messages */
 function EmptyState() {
   return (
     <div className="flex flex-col items-center py-10">
@@ -214,7 +207,6 @@ function EmptyState() {
             <path d="M3.43 2.524A41.29 41.29 0 0110 2c2.236 0 4.43.18 6.57.524 1.437.231 2.43 1.49 2.43 2.902v5.148c0 1.413-.993 2.67-2.43 2.902a41.102 41.102 0 01-3.55.414c-.28.02-.521.18-.643.413l-1.712 3.293a.75.75 0 01-1.33 0l-1.713-3.293a.783.783 0 00-.642-.413 41.108 41.108 0 01-3.55-.414C1.993 13.245 1 11.986 1 10.574V5.426c0-1.413.993-2.67 2.43-2.902z" />
           </svg>
         </div>
-        {/* Decorative dots */}
         <div className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-[#ecad0a]/40" />
         <div className="absolute -bottom-1 -left-1.5 h-1.5 w-1.5 rounded-full bg-[#209dd7]/30" />
       </div>
@@ -233,7 +225,6 @@ function EmptyState() {
   );
 }
 
-/** A single message in the chat */
 function MessageBubble({ message, isConsecutive }: { message: ChatMessage; isConsecutive: boolean }) {
   const isUser = message.role === "user";
 
@@ -276,7 +267,6 @@ function MessageBubble({ message, isConsecutive }: { message: ChatMessage; isCon
   );
 }
 
-/** Animated typing dots */
 function TypingIndicator() {
   return (
     <div className="mt-5 flex gap-2.5">
@@ -299,7 +289,6 @@ function TypingIndicator() {
   );
 }
 
-/** Lightweight formatter: handles **bold**, bullet lists (- item), and line breaks. */
 function FormattedMessage({ text }: { text: string }) {
   const lines = text.split("\n");
   const elements: ReactNode[] = [];
@@ -334,7 +323,6 @@ function FormattedMessage({ text }: { text: string }) {
   return <>{elements}</>;
 }
 
-/** Replace **bold** and *italic* markers with styled spans. */
 function formatInline(text: string): ReactNode[] {
   const parts: ReactNode[] = [];
   const regex = /\*\*(.+?)\*\*|\*(.+?)\*/g;

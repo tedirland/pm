@@ -9,7 +9,8 @@ from fastapi.staticfiles import StaticFiles
 from app.database import get_connection, init_db
 from app.routers import ai, auth, boards, cards, columns
 
-STATIC_DIR = Path(os.environ.get("STATIC_DIR", str(Path(__file__).resolve().parent.parent.parent / "static")))
+_default_static = Path(__file__).resolve().parent.parent.parent / "static"
+STATIC_DIR = Path(os.environ.get("STATIC_DIR", str(_default_static)))
 
 
 @asynccontextmanager
@@ -22,7 +23,6 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Kanban Studio API", lifespan=lifespan)
 
-# Register routers
 app.include_router(auth.router)
 app.include_router(boards.router)
 app.include_router(cards.router)

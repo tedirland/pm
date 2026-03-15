@@ -2,17 +2,12 @@ import sqlite3
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from app.database import create_card, delete_card, ensure_board, move_card, update_card
+from app.database import create_card, delete_card, move_card, update_card
 from app.dependencies import get_current_user_id, get_db
 from app.models import CardCreateRequest, CardMoveRequest, CardUpdateRequest
+from app.utils import parse_id
 
 router = APIRouter(prefix="/api", tags=["cards"])
-
-
-def parse_id(prefixed_id: str) -> int:
-    """Strip 'col-' or 'card-' prefix and return the integer ID."""
-    parts = prefixed_id.split("-", 1)
-    return int(parts[1]) if len(parts) == 2 and parts[0] in ("col", "card") else int(prefixed_id)
 
 
 # --- Legacy single-board card endpoints ---
@@ -76,13 +71,7 @@ async def create_card_on_board(
     user_id: int = Depends(get_current_user_id),
     conn: sqlite3.Connection = Depends(get_db),
 ):
-    # Verify board ownership
-    board = conn.execute(
-        "SELECT id FROM boards WHERE id = ? AND user_id = ?",
-        (board_id, user_id),
-    ).fetchone()
-    if not board:
-        raise HTTPException(status_code=404, detail="Board not found")
+    _require_board_ownership(conn, board_id, user_id)
     card = create_card(conn, parse_id(body.column_id), body.title, body.details, user_id, body.due_date)
     if card is None:
         raise HTTPException(status_code=404, detail="Column not found")
@@ -97,12 +86,7 @@ async def update_card_on_board(
     user_id: int = Depends(get_current_user_id),
     conn: sqlite3.Connection = Depends(get_db),
 ):
-    board = conn.execute(
-        "SELECT id FROM boards WHERE id = ? AND user_id = ?",
-        (board_id, user_id),
-    ).fetchone()
-    if not board:
-        raise HTTPException(status_code=404, detail="Board not found")
+    _require_board_ownership(conn, board_id, user_id)
     ok = update_card(conn, parse_id(card_id), body.title, body.details, user_id, body.due_date, body.labels)
     if not ok:
         raise HTTPException(status_code=404, detail="Card not found")
@@ -116,12 +100,7 @@ async def delete_card_on_board(
     user_id: int = Depends(get_current_user_id),
     conn: sqlite3.Connection = Depends(get_db),
 ):
-    board = conn.execute(
-        "SELECT id FROM boards WHERE id = ? AND user_id = ?",
-        (board_id, user_id),
-    ).fetchone()
-    if not board:
-        raise HTTPException(status_code=404, detail="Board not found")
+    _require_board_ownership(conn, board_id, user_id)
     ok = delete_card(conn, parse_id(card_id), user_id)
     if not ok:
         raise HTTPException(status_code=404, detail="Card not found")
@@ -136,13 +115,18 @@ async def move_card_on_board(
     user_id: int = Depends(get_current_user_id),
     conn: sqlite3.Connection = Depends(get_db),
 ):
-    board = conn.execute(
-        "SELECT id FROM boards WHERE id = ? AND user_id = ?",
-        (board_id, user_id),
-    ).fetchone()
-    if not board:
-        raise HTTPException(status_code=404, detail="Board not found")
+    _require_board_ownership(conn, board_id, user_id)
     ok = move_card(conn, parse_id(card_id), parse_id(body.column_id), body.position, user_id)
     if not ok:
         raise HTTPException(status_code=404, detail="Card or column not found")
     return {"ok": True}
+
+
+def _require_board_ownership(conn: sqlite3.Connection, board_id: int, user_id: int) -> None:
+    """Raise 404 if the board does not exist or is not owned by the user."""
+    row = conn.execute(
+        "SELECT id FROM boards WHERE id = ? AND user_id = ?",
+        (board_id, user_id),
+    ).fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Board not found")

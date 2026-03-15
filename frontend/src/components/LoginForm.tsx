@@ -105,13 +105,9 @@ export const LoginForm = ({ onLogin }: LoginFormProps) => {
               disabled={loading}
               className="w-full rounded-full bg-[var(--secondary-purple)] px-5 py-2.5 text-xs font-semibold uppercase tracking-wide text-white transition hover:brightness-110 disabled:opacity-60"
             >
-              {loading
-                ? mode === "login"
-                  ? "Signing in..."
-                  : "Creating account..."
-                : mode === "login"
-                  ? "Sign in"
-                  : "Create account"}
+              {mode === "login"
+                ? (loading ? "Signing in..." : "Sign in")
+                : (loading ? "Creating account..." : "Create account")}
             </button>
           </form>
 
